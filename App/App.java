@@ -142,10 +142,10 @@ public class App {
             } else if (action.equals("O")) {
                 // List all orders
                 ArrayList<ArrayList<String>> res = db.selectAllOrders();
-                System.out.printf("%-8s %-12s %-14 %-14s %-14s %-10s %-4s %s\n", "ORDER_ID", "CUSTOMER_ID", "DISCOUNT_CODE", "INSURANCE_TYPE", "INCLUDED_MILES", "TOT_MILES", "TANK", "DROPOFF_LOC");
+                System.out.printf("%-8s %-12s %-14s %-14s %-14s %-10s %-4s %s\n", "ORDER_ID", "CUSTOMER_ID", "DISCOUNT_CODE", "INSURANCE_TYPE", "INCLUDED_MILES", "TOT_MILES", "TANK", "DROPOFF_LOC");
                 System.out.println("----------------------------------------------------------------------------------------------");
                 for (ArrayList<String> rs:res) {
-                    System.out.printf("%-8s %-12s %-14 %-14s %-14s %-10s %-4s %s\n", rs.get(0), rs.get(1), rs.get(2), rs.get(3), rs.get(4), rs.get(5), rs.get(6), rs.get(7));
+                    System.out.printf("%-8s %-12s %-14s %-14s %-14s %-10s %-4s %s\n", rs.get(0), rs.get(1), rs.get(2), rs.get(3), rs.get(4), rs.get(5), rs.get(6), rs.get(7));
                 }
             } else if (action.equals("q")) {
                 // quit app
