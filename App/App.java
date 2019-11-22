@@ -96,6 +96,57 @@ public class App {
                         System.out.println("Invalid action '" + action + "', enter '?' for help or 'q' to go back");
                     }
                 }
+            } else if (action.equals("G")) {
+                // List all groups
+                ArrayList<ArrayList<String>> res = db.selectAllGroups();
+                System.out.printf("%-14s %s\n", "DISCOUNT_CODE", "GROUP_NAME");
+                System.out.println("-------------------------");
+                for (ArrayList<String> rs:res) {
+                    System.out.printf("%-14s %s\n", rs.get(0), rs.get(1));
+                }
+            } else if (action.equals("g")) {
+                // select a group
+                String discount_code;
+                boolean goBack = false;
+                System.out.println("Please enter a valid discount_code");
+                discount_code = s.nextLine();
+                ArrayList<String> result = db.selectOneGroup(discount_code);
+                if (result.size() == 0) {
+                    System.out.println("Group with discount code '" + discount_code + "' does not exist");
+                    goBack = true;
+                } else {
+                    System.out.println("Group '" + discount_code + "' selected");
+                }
+                while (!goBack) {
+                    actions = "1q?";
+                    System.out.print("[" + actions + "] :> ");
+                    action = s.nextLine();
+                    if (action.equals("1")) {
+                        // List all customers in this group
+                        ArrayList<ArrayList<String>> res = db.selectGroupMembers(discount_code);
+                        System.out.printf("%-12s %s\n", "CUSTOMER_ID", "CUSTOMER_NAME");
+                        System.out.println("--------------------------");
+                        for (ArrayList<String> rs:res) {
+                            System.out.printf("%-12s %s\n", rs.get(0), rs.get(1));
+                        }
+                    } else if (action.equals("q")) {
+                        // Go back to main menu
+                        goBack = true;
+                    } else if (action.equals("?")) {
+                        // Show help msg
+                        group_menu();
+                    } else {
+                        System.out.println("Invalid action '" + action + "', enter '?' for help or 'q' to go back");
+                    }
+                }
+            } else if (action.equals("O")) {
+                // List all orders
+                ArrayList<ArrayList<String>> res = db.selectAllOrders();
+                System.out.printf("%-8s %-12s %-14 %-14s %-14s %-10s %-4s %s\n", "ORDER_ID", "CUSTOMER_ID", "DISCOUNT_CODE", "INSURANCE_TYPE", "INCLUDED_MILES", "TOT_MILES", "TANK", "DROPOFF_LOC");
+                System.out.println("----------------------------------------------------------------------------------------------");
+                for (ArrayList<String> rs:res) {
+                    System.out.printf("%-8s %-12s %-14 %-14s %-14s %-10s %-4s %s\n", rs.get(0), rs.get(1), rs.get(2), rs.get(3), rs.get(4), rs.get(5), rs.get(6), rs.get(7));
+                }
             } else if (action.equals("q")) {
                 // quit app
                 quitApp = true;
@@ -127,6 +178,13 @@ public class App {
         System.out.println("Customer Menu");
         System.out.println("    [1] List all groups that contain this customer");
         System.out.println("    [2] List all orders created by this customer");
+        System.out.println("    [q] Go back to main menu");
+        System.out.println("    [?] Show this menu");
+    }
+
+    static void group_menu() {
+        System.out.println("Group Menu");
+        System.out.println("    [1] Lis all members in this group");
         System.out.println("    [q] Go back to main menu");
         System.out.println("    [?] Show this menu");
     }

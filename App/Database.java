@@ -92,7 +92,7 @@ public class Database {
             db.selectUserOrders = db.conn.prepareStatement("SELECT order_id FROM orders NATURAL JOIN members WHERE customer_id = ?");
             db.selectAllGroups = db.conn.prepareStatement("SELECT * FROM user_groups");
             db.selectOneGroup = db.conn.prepareStatement("SELECT * FROM user_groups WHERE discount_code = ?");
-            db.selectGroupMembers = db.conn.prepareStatement("SELECT customer_id, customers_name FROM members NATURAL JOIN customers WHERE discount_code = ?");
+            db.selectGroupMembers = db.conn.prepareStatement("SELECT customer_id, customer_name FROM members NATURAL JOIN customers WHERE discount_code = ?");
             db.selectAllOrders = db.conn.prepareStatement("SELECT * FROM orders NATURAL JOIN members");
             db.selectOneOrder = db.conn.prepareStatement("SELECT * FROM orders NATURAL JOIN members WHERE order_id = ?");
         } catch (Exception e) {
@@ -250,6 +250,26 @@ public class Database {
     }
 
     /**
+     * List info of a group
+     * @param discount_code the target group
+     * @return ArrayList of String
+     */
+    ArrayList<String> selectOneGroup(String discount_code) {
+        ArrayList<String> res = new ArrayList<String>();
+        try {
+            selectOneGroup.setString(1, discount_code);
+            ResultSet rs = selectOneGroup.executeQuery();
+            if (rs.next()) {
+                res.add(rs.getString("discount_code"));
+                res.add(rs.getString("group_name"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
      * List all members in a certain group
      * @param discount_code the target group
      * @return ArrayList of String list containning customer_id and customer_name
@@ -290,6 +310,32 @@ public class Database {
                 row.add("" + rs.getInt("tank"));
                 row.add(rs.getString("dropoff_loc"));
                 res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
+     * List info of an order
+     * @param order_id the target order
+     * @return ArrayList of String
+     */
+    ArrayList<String> selectOneOrder(int order_id) {
+        ArrayList<String> res = new ArrayList<String>();
+        try {
+            selectOneOrder.setInt(1, order_id);
+            ResultSet rs = selectOneOrder.executeQuery();
+            if (rs.next()) {
+                res.add("" + rs.getInt("order_id"));
+                res.add(rs.getString("customer_id"));
+                res.add(rs.getString("discount_code"));
+                res.add(rs.getString("insurance_type"));
+                res.add("" + rs.getInt("included_miles"));
+                res.add("" + rs.getInt("tot_miles"));
+                res.add("" + rs.getInt("tank"));
+                res.add(rs.getString("dropoff_loc"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
