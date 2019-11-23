@@ -1,4 +1,5 @@
 .DS_Store
-App/App.class
-App/App.jar
-App/Database.class
+App/App.java
+App/Manifest.txt
+App/*.class
+App/*.jar
