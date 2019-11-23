@@ -2,4 +2,6 @@
 App/App.java
 App/Manifest.txt
 App/*.class
-App/*.jar
+App/user.jar
+App/staff.jar
+App/admin.jar
