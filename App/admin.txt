@@ -1,2 +1,0 @@
-Main-class: admin
-Class-Path: ojdbc7.jar

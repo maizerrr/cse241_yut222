@@ -1,2 +1,0 @@
-Main-class: user
-Class-Path: ojdbc7.jar

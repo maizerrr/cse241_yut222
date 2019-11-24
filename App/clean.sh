@@ -1,2 +1,2 @@
 rm -f *.class
-rm -f App.jar
+rm -f user.jar

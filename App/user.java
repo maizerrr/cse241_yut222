@@ -48,6 +48,8 @@ public class user {
             }
         }
 
+        menu();
+
         // if not quit, keep looping
         while (!quitApp) {
             // valid actions
@@ -55,16 +57,70 @@ public class user {
             System.out.print("[" + actions + "] :> ");
             String action = s.nextLine();
             if (action.equals("1")) {
+                info_menu();
                 // personal info
                 boolean goBack = false;
                 while (!goBack) {
-                    // TODO: implement info_menu
+                    actions = "1234q?";
+                    System.out.print("[" + actions + "] :> ");
+                    action = s.nextLine();
+                    if (action.equals("1")) {
+                        // view information
+                        ArrayList<String> res = db.selectOneUser(customer_id);
+                        System.out.printf("%-12s %-14s %-12s %s\n", "CUSTOMER_ID", "CUSTOMER_NAME", "ADDRESS", "DRIVER_LICENSE");
+                        System.out.println("-------------------------------------------------------");
+                        System.out.printf("%-12s %-14s %-12s %s\n", res.get(0), res.get(1), res.get(2), res.get(3));
+                    } else if (action.equals("2")) {
+                        // edit name
+                    } else if (action.equals("3")) {
+                        //edit address
+                    } else if (action.equals("4")) {
+                        //edit driver license
+                    } else if (action.equals("q")) {
+                        // go back to main menu
+                        goBack = true;
+                    } else if (action.equals("?")) {
+                        // show menu
+                        info_menu();
+                    } else {
+                        System.out.println("Invalid command '" + "', enter '?' for help or 'q' to go back");
+                    }
                 }
             } else if (action.equals("2")) {
+                order_menu();
                 // manage orders
                 boolean goBack = false;
                 while (!goBack) {
-                    // TODO: implement order_menu
+                    actions = "12q?";
+                    System.out.print("[" + actions + "] :> ");
+                    action = s.nextLine();
+                    if (action.equals("1")) {
+                        // view orders
+                        ArrayList<ArrayList<String>> res = db.selectUserOrders(customer_id);
+                        System.out.printf("%-8s %-14s %-14s %-8s %-14s %-9s %-4s %-12s %-20s %s\n", "ORDER_ID", "DISCOUNT_CODE", "INSURANCE_TYPE", "PLATE_NO", "INCLUDED_MILES", "TOT_MILES", "TANK", "DROPOFF_LOC", "START_TIME", "END_TIME");
+                        System.out.println("------------------------------------------------------------------------------------------------------------------------------------");
+                        for (ArrayList<String> rd:res) {
+                            System.out.printf("%-8s %-14s %-14s %-8s %-14s %-9s %-4s %-12s %-20s %s\n", rd.get(0), rd.get(1), rd.get(2), rd.get(3), rd.get(4), rd.get(5), rd.get(6), rd.get(7), rd.get(8), rd.get(9));
+                        }
+                    } else if (action.equals("2")) {
+                        // create a new order
+                    } else if (action.equals("q")) {
+                        // go back to main menu
+                        goBack = true;
+                    } else if (action.equals("?")) {
+                        // show menu
+                        order_menu();
+                    } else {
+                        System.out.println("Invalid command '" + action + "', enter '?' for help or 'q' to go back");
+                    }
+                }
+            } else if (action.equals("3")) {
+                // show user's groups
+                ArrayList<ArrayList<String>> res = db.selectUserGroups(customer_id);
+                System.out.printf("%-14s %s\n", "DISCOUNT_CODE", "GROUP_NAME");
+                System.out.println("-------------------------");
+                for (ArrayList<String> rd:res) {
+                    System.out.printf("%-14s %s\n", rd.get(0), rd.get(1));
                 }
             } else if (action.equals("q")) {
                 // quit
@@ -87,6 +143,7 @@ public class user {
         System.out.println("Main Menu");
         System.out.println("    [1] Personal Info");
         System.out.println("    [2] Manager Orders");
+        System.out.println("    [3] Show user groups");
         System.out.println("    [q] Quit app");
         System.out.println("    [?] SHow this menu");
     }

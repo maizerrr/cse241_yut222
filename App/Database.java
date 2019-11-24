@@ -63,6 +63,7 @@ public class Database {
      */
     PreparedStatement selectOneOrder;
 
+
     private Database() {
 
     }
@@ -89,12 +90,12 @@ public class Database {
             db.selectAllUsers = db.conn.prepareStatement("SELECT * FROM customers");
             db.selectOneUser = db.conn.prepareStatement("SELECT * FROM customers WHERE customer_id = ?");
             db.selectUserGroups = db.conn.prepareStatement("SELECT discount_code, group_name FROM members NATURAL JOIN user_groups WHERE customer_id = ?");
-            db.selectUserOrders = db.conn.prepareStatement("SELECT order_id FROM orders NATURAL JOIN members WHERE customer_id = ?");
+            db.selectUserOrders = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order WHERE customer_id = ?");
             db.selectAllGroups = db.conn.prepareStatement("SELECT * FROM user_groups");
             db.selectOneGroup = db.conn.prepareStatement("SELECT * FROM user_groups WHERE discount_code = ?");
             db.selectGroupMembers = db.conn.prepareStatement("SELECT customer_id, customer_name FROM members NATURAL JOIN customers WHERE discount_code = ?");
-            db.selectAllOrders = db.conn.prepareStatement("SELECT * FROM orders NATURAL JOIN members");
-            db.selectOneOrder = db.conn.prepareStatement("SELECT * FROM orders NATURAL JOIN members WHERE order_id = ?");
+            db.selectAllOrders = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order");
+            db.selectOneOrder = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order WHERE order_id = ?");
         } catch (Exception e) {
             e.printStackTrace();
             db.disconnect();
@@ -215,13 +216,24 @@ public class Database {
      * @param customer_id the target customer
      * @return ArrayList of order_id
      */
-    ArrayList<Integer> selectUserOrders(int customer_id) {
-        ArrayList<Integer> res = new ArrayList<Integer>();
+    ArrayList<ArrayList<String>> selectUserOrders(int customer_id) {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
         try {
             selectUserOrders.setInt(1, customer_id);
             ResultSet rs = selectUserOrders.executeQuery();
             while (rs.next()) {
-                res.add(rs.getInt("order_id"));
+                ArrayList<String> row = new ArrayList<String>();
+                row.add("" + rs.getInt("order_id"));
+                row.add(rs.getString("discount_code"));
+                row.add(rs.getString("insurance_type"));
+                row.add(rs.getString("plate_no"));
+                row.add("" + rs.getInt("included_miles"));
+                row.add("" + rs.getInt("tot_miles"));
+                row.add("" + rs.getInt("tank"));
+                row.add(rs.getString("dropoff_loc"));
+                row.add(rs.getString("start_time"));
+                row.add(rs.getString("end_time"));
+                res.add(row);
             }
         } catch (SQLException e) {
             e.printStackTrace();

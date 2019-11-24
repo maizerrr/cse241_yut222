@@ -35,12 +35,10 @@ java -jar admin.jar
 ```
 
 <h2>Customers</h2>
-First, you need to provide a valid customer id. Then you can edit your profile (name, address, driver license).
-You can also create orders (book online) and estimate rental.
+First, you need to provide a valid customer id. Then you can edit your profile (name, address, driver license). You can view your user groups as well. You can also create orders (book online) and estimate rental.
 
 <h2>Employees</h2>
-Employees can help customers to create accounts (insert into customers table), create orders for customers, 
-and charge customers with their order information.
+Employees can help customers to create accounts (insert into customers table), add accounts to certain user groups, create orders for customers, and charge customers with their order information.
 
 <h2>Managers</h2>
 Managers are able to chnage the price of items, rental rate, edit user groups, manage viecles and rent centers.
