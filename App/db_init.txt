@@ -1,0 +1,268 @@
+drop table vehicle_order;
+drop table vehicle;
+drop table rental;
+drop table rent_centers;
+drop table add_ons;
+drop table items;
+drop table orders;
+drop table insurance;
+drop table members;
+drop table user_groups;
+drop table customers;
+
+
+
+drop sequence getOrderID;
+drop sequence getMembership;
+drop sequence getCustomerID;
+
+
+
+create table customers
+(
+customer_id number(8),
+customer_name varchar(20) not null,
+address varchar(50) not null,
+driver_license varchar(15) not null,
+primary key (customer_id)
+);
+create sequence getCustomerID;
+create trigger nextCustomerID before insert on customers
+for each row
+begin
+select getCustomerID.nextval into :new.customer_id from dual;
+end;
+
+create table user_groups
+(
+discount_code varchar(20),
+group_name varchar(30) not null,
+discount_rate number(3, 2),
+primary key (discount_code)
+);
+
+create table members
+(
+membership number(8),
+customer_id number(8),
+discount_code varchar(20),
+primary key (membership),
+foreign key (customer_id) references customers,
+foreign key (discount_code) references user_groups
+);
+create sequence getMembership;
+create trigger nextMembership before insert on members
+for each row
+begin
+select getMembership.nextval into :new.membership from dual;
+end;
+
+create table insurance
+(
+insurance_type varchar(20),
+price_per_hour number(8, 2),
+price_per_day number(8, 2),
+price_per_week number(8, 2),
+primary key (insurance_type)
+);
+
+create table orders
+(
+order_id number(8),
+membership number(8),
+insurance_type varchar(20),
+included_miles number(8, 2) not null,
+tot_miles number(8, 2),
+tank number(8, 2),
+dropoff_loc varchar(50),
+primary key (order_id),
+foreign key (membership) references members,
+foreign key (insurance_type) references insurance
+);
+create sequence getOrderID;
+create trigger nextOrderID before insert on orders
+for each row
+begin
+select getOrderID.nextval into :new.order_id from dual;
+end;
+
+create table items
+(
+item varchar(20),
+price number(8, 2) not null,
+primary key (item)
+);
+
+create table add_ons
+(
+order_id number(8),
+item varchar(20),
+num_of_item number(2),
+primary key (order_id, item),
+foreign key (order_id) references orders,
+foreign key (item) references items
+);
+
+create table rent_centers
+(
+center_name varchar(30),
+loc varchar(50) not null,
+primary key (center_name)
+);
+
+create table rental
+(
+type varchar(15),
+rental_by_hours number(8, 2),
+rental_by_days number(8, 2),
+rental_by_weeks number(8, 2),
+primary key (type)
+);
+
+create table vehicle
+(
+plate_no varchar(15),
+make varchar(20),
+model varchar(20),
+type varchar(15),
+rent_center varchar(30),
+odometer number(10, 2) not null,
+primary key (plate_no),
+foreign key (type) references rental,
+foreign key (rent_center) references rent_centers
+);
+
+create table vehicle_order
+(
+order_id number(8),
+plate_no varchar(15),
+start_time timestamp not null,
+end_time timestamp not null,
+primary key (order_id),
+foreign key (order_id) references orders,
+foreign key (plate_no) references vehicle
+);
+
+
+
+insert into customers values(default, 'Alex', '5th St', '11111111');
+insert into customers values(default, 'Bob', '6th St', '22222222');
+insert into customers values(default, 'Cathy', '7th St', '33333333');
+insert into customers values(default, 'Dawson', '8th St', '44444444');
+insert into customers values(default, 'Edward', '9th St', '55555555');
+insert into customers values(default, 'Fred', '10th St', '66666666');
+insert into customers values(default, 'Gary', '11th St', '77777777');
+insert into customers values(default, 'Harry', '12th St', '88888888');
+insert into customers values(default, 'Iris', '13th St', '99999999');
+insert into customers values(default, 'Jack', '14th St', '00000000');
+
+insert into user_groups values('G1111111', 'Google', 0.8);
+insert into user_groups values('A1212121', 'Amazon', 0.8);
+insert into user_groups values('M2020202', 'Microsoft', 0.8);
+insert into user_groups values('L1234567', 'Lehigh', 0.7);
+insert into user_groups values('55555555', 'Hurts Prime', 0.5);
+insert into user_groups values('A2222222', 'Apple', 0.8);
+insert into user_groups values('O2333333', 'Oracle', 0.8);
+insert into user_groups values('PIA12312', 'Piazza', 0.9);
+insert into user_groups values('00000000', 'Default', 1);
+insert into user_groups values('H1111111', 'Hurts Employee', 0.5);
+
+insert into members values(default, 1, 'G1111111');
+insert into members values(default, 1, 'A1212121');
+insert into members values(default, 2, 'A1212121');
+insert into members values(default, 3, 'L1234567');
+insert into members values(default, 3, 'H1111111');
+insert into members values(default, 4, 'O2333333');
+insert into members values(default, 1, '00000000');
+insert into members values(default, 2, '00000000');
+insert into members values(default, 3, '00000000');
+insert into members values(default, 4, '00000000');
+insert into members values(default, 5, '00000000');
+insert into members values(default, 6, '00000000');
+insert into members values(default, 7, '00000000');
+insert into members values(default, 8, '00000000');
+insert into members values(default, 9, '00000000');
+insert into members values(default, 10, '00000000');
+
+insert into insurance values('basic', 1, 24, 168);
+insert into insurance values('advanced', 5, 100, 600);
+insert into insurance values('plan a', 2, 48, 336);
+insert into insurance values('plan b', 2, 48, 336);
+insert into insurance values('plan c', 2, 48, 336);
+insert into insurance values('plan d', 2, 48, 336);
+insert into insurance values('plan e', 2, 48, 336);
+insert into insurance values('plan f', 2, 48, 336);
+insert into insurance values('plan g', 2, 48, 336);
+insert into insurance values('plan h', 2, 48, 336);
+
+insert into orders values(default, 1, 'basic', 1000, null, null, null);
+insert into orders values(default, 2, 'basic', 1000, null, null, null);
+insert into orders values(default, 3, 'basic', 1000, null, null, null);
+insert into orders values(default, 4, 'basic', 1000, null, null, null);
+insert into orders values(default, 5, 'basic', 1000, null, null, null);
+insert into orders values(default, 6, 'basic', 1000, null, null, null);
+insert into orders values(default, 7, 'basic', 1000, null, null, null);
+insert into orders values(default, 8, 'basic', 1000, null, null, null);
+insert into orders values(default, 9, 'advanced', 5000, null, null, null);
+insert into orders values(default, 10, 'advanced', 5000, null, null, null);
+
+insert into items values('baby seat', 10);
+insert into items values('gps', 10);
+insert into items values('flash light', 5);
+insert into items values('radio', 10);
+insert into items values('phone charger', 5);
+insert into items values('Item A', 0);
+insert into items values('Item B', 0);
+insert into items values('Item C', 0);
+insert into items values('Item D', 0);
+insert into items values('Item E', 0);
+
+insert into add_ons values(1, 'gps', 1);
+insert into add_ons values(1, 'radio', 1);
+insert into add_ons values(2, 'gps', 1);
+insert into add_ons values(4, 'baby seat', 2);
+insert into add_ons values(5, 'gps', 1);
+insert into add_ons values(6, 'gps', 1);
+insert into add_ons values(7, 'gps', 1);
+insert into add_ons values(8, 'gps', 1);
+insert into add_ons values(9, 'flash light', 1);
+insert into add_ons values(10, 'radio', 1);
+
+insert into rent_centers values('Center A', 'New York');
+insert into rent_centers values('Center B', 'Chicago');
+insert into rent_centers values('Center C', 'Philadelphia');
+insert into rent_centers values('Center D', 'Allentown');
+insert into rent_centers values('Center E', 'Bethlehem');
+insert into rent_centers values('Center F', 'Los Angeles');
+insert into rent_centers values('Center G', 'San Fransisco');
+insert into rent_centers values('Center H', 'Seattle');
+insert into rent_centers values('Center I', 'Danvers');
+insert into rent_centers values('Center J', 'Las Vegas');
+
+insert into rental values('sedan', 15, 150, 750);
+insert into rental values('SUV', 20, 200, 1000);
+insert into rental values('minivan', 30, 300, 1500);
+insert into rental values('pickup', 30, 300, 1500);
+insert into rental values('convertible', 30, 300, 1500);
+
+insert into vehicle values('A1234567', 'Audi', 'Q3', 'SUV', 'Center A', 0);
+insert into vehicle values('B1234567', 'Audi', 'Q3', 'SUV', 'Center B', 0);
+insert into vehicle values('C1234567', 'Audi', 'Q3', 'SUV', 'Center C', 0);
+insert into vehicle values('D1234567', 'Audi', 'Q3', 'SUV', 'Center D', 0);
+insert into vehicle values('E1234567', 'Audi', 'Q3', 'SUV', 'Center E', 0);
+insert into vehicle values('A1111111', 'Audi', 'A8', 'sedan', 'Center A', 0);
+insert into vehicle values('B2222222', 'Audi', 'A8', 'sedan', 'Center B', 0);
+insert into vehicle values('C3333333', 'Audi', 'A8', 'sedan', 'Center C', 0);
+insert into vehicle values('D4444444', 'Audi', 'A8', 'sedan', 'Center D', 0);
+insert into vehicle values('E5555555', 'Audi', 'A8', 'sedan', 'Center E', 0);
+
+insert into vehicle_order values(1, 'A1234567', TO_TIMESTAMP('2019-sep-10 10:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-10 11:00:00', 'YYYY/MM/DD HH24:MI:SS'));
+insert into vehicle_order values(2, 'B1234567', TO_TIMESTAMP('2019-sep-10 10:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-10 11:00:00', 'YYYY/MM/DD HH24:MI:SS'));
+insert into vehicle_order values(3, 'C1234567', TO_TIMESTAMP('2019-sep-10 10:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-12 10:00:00', 'YYYY/MM/DD HH24:MI:SS'));
+insert into vehicle_order values(4, 'D1234567', TO_TIMESTAMP('2019-sep-10 10:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-12 10:00:00', 'YYYY/MM/DD HH24:MI:SS'));
+insert into vehicle_order values(5, 'E1234567', TO_TIMESTAMP('2019-sep-10 10:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-10 12:00:00', 'YYYY/MM/DD HH24:MI:SS'));
+insert into vehicle_order values(6, 'A1111111', TO_TIMESTAMP('2019-sep-10 10:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-10 12:00:00', 'YYYY/MM/DD HH24:MI:SS'));
+insert into vehicle_order values(7, 'B2222222', TO_TIMESTAMP('2019-sep-10 10:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-10 12:00:00', 'YYYY/MM/DD HH24:MI:SS'));
+insert into vehicle_order values(8, 'A1234567', TO_TIMESTAMP('2019-sep-11 10:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-12 10:00:00', 'YYYY/MM/DD HH24:MI:SS'));
+insert into vehicle_order values(9, 'B1234567', TO_TIMESTAMP('2019-sep-10 12:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-10 13:00:00', 'YYYY/MM/DD HH24:MI:SS'));
+insert into vehicle_order values(10, 'C3333333', TO_TIMESTAMP('2019-sep-10 10:00:00', 'YYYY/MM/DD HH24:MI:SS'), TO_TIMESTAMP('2019-sep-20 10:00:00', 'YYYY/MM/DD HH24:MI:SS'));

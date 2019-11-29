@@ -39,6 +39,15 @@ public class Database {
     PreparedStatement selectUserOrders;
 
     /**
+     * Update user info
+     */
+    PreparedStatement updateUserName;
+
+    PreparedStatement updateUserAddress;
+
+    PreparedStatement updateUserDriverLicense;
+
+    /**
      * List all user groups
      */
     PreparedStatement selectAllGroups;
@@ -54,6 +63,16 @@ public class Database {
     PreparedStatement selectGroupMembers;
 
     /**
+     * List all memberships
+     */
+    PreparedStatement selectAllMemberships;
+
+    /** 
+     * Select a membership based on customer_id and discount_code
+     */
+    PreparedStatement selectAMembership;
+
+    /**
      * List all orders
      */
     PreparedStatement selectAllOrders;
@@ -63,6 +82,50 @@ public class Database {
      */
     PreparedStatement selectOneOrder;
 
+    /**
+     * Create a new order
+     */
+    PreparedStatement insertOneOrder;
+
+    /**
+     * List all available insurance plans
+     */
+    PreparedStatement selectAllInsurance;
+
+    /**
+     * List all add-on items
+     */
+    PreparedStatement selectAllItems;
+
+    /**
+     * insert an add-on item to an order
+     */
+    PreparedStatement insertAddOns;
+
+    /**
+     * List all rent centers
+     */
+    PreparedStatement selectAllRentCenters;
+
+    /**
+     * List all vehicles
+     */
+    PreparedStatement selectAllVehicles;
+
+    /**
+     * List all available vehicles at a specific rent center
+     */
+    PreparedStatement selectAllAvaliableVehicles;
+
+    /**
+     * List order records of all vehicles
+     */
+    PreparedStatement selectAllVehicleOrder;
+
+    /**
+     * Insert a record, for creating new order
+     */
+    PreparedStatement insertVehicleOrder;
 
     private Database() {
 
@@ -76,6 +139,7 @@ public class Database {
             Class.forName ("oracle.jdbc.driver.OracleDriver");
             Connection con = DriverManager.getConnection(url, usr, pwd);
             db.conn = con;
+            db.conn.setAutoCommit(false);
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
@@ -91,11 +155,34 @@ public class Database {
             db.selectOneUser = db.conn.prepareStatement("SELECT * FROM customers WHERE customer_id = ?");
             db.selectUserGroups = db.conn.prepareStatement("SELECT discount_code, group_name FROM members NATURAL JOIN user_groups WHERE customer_id = ?");
             db.selectUserOrders = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order WHERE customer_id = ?");
+            db.updateUserName = db.conn.prepareStatement("UPDATE customers SET customer_name = ? WHERE customer_id = ?");
+            db.updateUserAddress = db.conn.prepareStatement("UPDATE customers SET address = ? WHERE customer_id = ?");
+            db.updateUserDriverLicense = db.conn.prepareStatement("UPDATE customers SET driver_license = ? WHERE customer_id = ?");
+
             db.selectAllGroups = db.conn.prepareStatement("SELECT * FROM user_groups");
             db.selectOneGroup = db.conn.prepareStatement("SELECT * FROM user_groups WHERE discount_code = ?");
             db.selectGroupMembers = db.conn.prepareStatement("SELECT customer_id, customer_name FROM members NATURAL JOIN customers WHERE discount_code = ?");
+
+            db.selectAllMemberships = db.conn.prepareStatement("SELECT * FROM members");
+            db.selectAMembership = db.conn.prepareStatement("SELECT * FROM members WHERE customer_id = ? AND discount_code = ?");
+            
             db.selectAllOrders = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order");
             db.selectOneOrder = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order WHERE order_id = ?");
+            db.insertOneOrder = db.conn.prepareStatement("INSERT INTO orders VALUES (default, ?, ?, ?, ?, ?, ?)", new String[]{"order_id"});
+
+            db.selectAllInsurance = db.conn.prepareStatement("SELECT * FROM insurance");
+
+            db.selectAllItems = db.conn.prepareStatement("SELECT * FROM items");
+
+            db.insertAddOns = db.conn.prepareStatement("INSERT INTO add_ons VALUES (?, ?, ?)");
+
+            db.selectAllRentCenters = db.conn.prepareStatement("SELECT * FROM rent_centers");
+
+            db.selectAllVehicles = db.conn.prepareStatement("SELECT * FROM vehicle");
+            db.selectAllAvaliableVehicles = db.conn.prepareStatement("SELECT * FROM vehicle WHERE plate_no NOT IN (SELECT plate_no FROM vehicle_order WHERE (start_time <= ? AND end_time > ?) OR (start_time > ? AND start_time < ?)) AND rent_center = ?");
+
+            db.selectAllVehicleOrder = db.conn.prepareStatement("SELECT * FROM vehicle_order");
+            db.insertVehicleOrder = db.conn.prepareStatement("INSERT INTO vehicle_order VALUES (?, ?, ?, ?)");
         } catch (Exception e) {
             e.printStackTrace();
             db.disconnect();
@@ -145,6 +232,18 @@ public class Database {
         return res;
     }
 
+    /*
+    boolean init() {
+        try {
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+    */
+
     /**
      * List all customers and their basic info
      * @return ArrayList of String list
@@ -176,7 +275,7 @@ public class Database {
         ArrayList<String> res = new ArrayList<String>();
         try {
             selectOneUser.setInt(1, customer_id);
-            ResultSet rs = selectAllUsers.executeQuery();
+            ResultSet rs = selectOneUser.executeQuery();
             if (rs.next()) {
                 res.add("" + rs.getInt("customer_id"));
                 res.add(rs.getString("customer_name"));
@@ -242,6 +341,65 @@ public class Database {
     }
 
     /**
+     * Update customer's name
+     * @param customer_id the target customer
+     * @param customer_name the name user wants to change to
+     * @return number of rows updated
+     */
+    int updateUserName(int customer_id, String customer_name) {
+        int count = 0;
+        try {
+            updateUserName.setInt(2, customer_id);
+            updateUserName.setString(1, customer_name);
+            count += updateUserName.executeUpdate();
+            this.conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return count;
+    }
+
+    /**
+     * Update customer's address
+     * @param customer_id the target customer
+     * @param customer_name the address user wants to change to
+     * @return number of rows updated
+     */
+    int updateUserAddress(int customer_id, String address) {
+        int count = 0;
+        try {
+            updateUserAddress.setInt(2, customer_id);
+            updateUserAddress.setString(1, address);
+            count += updateUserAddress.executeUpdate();
+            this.conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return count;
+    }
+
+    /**
+     * Update customer's driver license
+     * @param customer_id the target customer
+     * @param customer_name the driver license user wants to change to
+     * @return number of rows updated
+     */
+    int updateUserDriverLicense(int customer_id, String driver_license) {
+        int count = 0;
+        try {
+            updateUserDriverLicense.setInt(2, customer_id);
+            updateUserDriverLicense.setString(1, driver_license);
+            count += updateUserDriverLicense.executeUpdate();
+            this.conn.commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return count;
+    }
+
+    //-----------------------------------------------------------------------------------
+
+    /**
      * List all groups
      * @return Arraylist of String list containning discount_code and group_name
      */
@@ -303,6 +461,32 @@ public class Database {
         return res;
     }
 
+    //-----------------------------------------------------------------------------------
+    /**
+     * Select a membership based on customer_id and discount_code
+     * @param customer_id
+     * @param discount_code
+     * @return
+     */
+    ArrayList<String> selectAMembership (int customer_id, String discount_code) {
+        ArrayList<String> res = new ArrayList<String>();
+        try {
+            selectAMembership.setInt(1, customer_id);
+            selectAMembership.setString(2, discount_code);
+            ResultSet rs = selectAMembership.executeQuery();
+            if (rs.next()) {
+                res.add(rs.getString("membership"));
+                res.add(rs.getString("customer_id"));
+                res.add(rs.getString("discount_code"));
+            }   
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    //-----------------------------------------------------------------------------------
+
     /**
      * List all orders
      * @return ArrayList of String list containning all info in orders table
@@ -348,6 +532,293 @@ public class Database {
                 res.add("" + rs.getInt("tot_miles"));
                 res.add("" + rs.getInt("tank"));
                 res.add(rs.getString("dropoff_loc"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
+     * Create a new order with null fields and no add-ons
+     * @param membership
+     * @param insurance_type
+     * @param included_miles
+     * @return
+     */
+    boolean insertOneOrder(int membership, String insurance_type, double included_miles, String plate_no, Timestamp start_time, Timestamp end_time) {
+        try {
+            // modify orders
+            insertOneOrder.setInt(1, membership);
+            insertOneOrder.setString(2, insurance_type);
+            insertOneOrder.setDouble(3, included_miles);
+            ResultSet ors = insertOneOrder.executeQuery();
+            int order_id = -1;
+            if (ors.next()) {
+                order_id = ors.getInt("order_id");
+            } else {
+                this.conn.rollback();
+                return false;
+            }
+
+            // modify vehicle_order
+            insertVehicleOrder.setInt(1, order_id);
+            insertVehicleOrder.setString(2, plate_no);
+            insertVehicleOrder.setTimestamp(3, start_time);
+            insertVehicleOrder.setTimestamp(4, end_time);
+            if (insertVehicleOrder.executeUpdate() < 1) {
+                this.conn.rollback();
+                return false;
+            }
+            this.conn.commit();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Create a new order with null fields
+     * @param membership
+     * @param insurance_type
+     * @param included_miles
+     * @param plate_no
+     * @param start_time
+     * @param end_time
+     * @param items
+     * @return
+     */
+    boolean insertOneOrder(int membership, String insurance_type, double included_miles, String plate_no, Timestamp start_time, Timestamp end_time, ArrayList<String> items) {
+        try {
+            // modify orders
+            insertOneOrder.setInt(1, membership);
+            insertOneOrder.setString(2, insurance_type);
+            insertOneOrder.setDouble(3, included_miles);
+            ResultSet ors = insertOneOrder.executeQuery();
+            int order_id = -1;
+            if (ors.next()) {
+                order_id = ors.getInt("order_id");
+            } else {
+                this.conn.rollback();
+                return false;
+            }
+
+            // modify vehicle_order
+            insertVehicleOrder.setInt(1, order_id);
+            insertVehicleOrder.setString(2, plate_no);
+            insertVehicleOrder.setTimestamp(3, start_time);
+            insertVehicleOrder.setTimestamp(4, end_time);
+            if (insertVehicleOrder.executeUpdate() < 1) {
+                this.conn.rollback();
+                return false;
+            }
+
+            // modify add_ons
+            while (items.size() > 0) {
+                String item = items.get(0);
+                int number = 0;
+                for (int i = 1; i < items.size(); i++) {
+                    if (items.get(i).equals(item)) {
+                        number++;
+                        i--;
+                        items.remove(i);
+                    }
+                }
+                insertAddOns.setInt(1, order_id);
+                insertAddOns.setString(2, item);
+                insertAddOns.setInt(3, number);
+                if (insertAddOns.executeUpdate() < 1) {
+                    this.conn.rollback();
+                    return false;
+                }
+            }
+            this.conn.commit();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    /**
+     * Create a new order
+     * @param membership
+     * @param insurance_type
+     * @param included_miles
+     * @param tot_mile
+     * @param tank
+     * @param dropoff_loc
+     * @return
+     */
+    boolean insertOneOrder(int membership, String insurance_type, double included_miles, double tot_miles, double tank, String dropoff_loc, String plate_no, Timestamp start_time, Timestamp end_time, ArrayList<String> items) {
+        try {
+            // modify orders
+            insertOneOrder.setInt(1, membership);
+            insertOneOrder.setString(2, insurance_type);
+            insertOneOrder.setDouble(3, included_miles);
+            insertOneOrder.setDouble(4, tot_miles);
+            insertOneOrder.setDouble(5, tank);
+            insertOneOrder.setString(6, dropoff_loc);
+            ResultSet ors = insertOneOrder.executeQuery();
+            int order_id = -1;
+            if (ors.next()) {
+                order_id = ors.getInt("order_id");
+            } else {
+                this.conn.rollback();
+                return false;
+            }
+
+            // modify vehicle_order
+            insertVehicleOrder.setInt(1, order_id);
+            insertVehicleOrder.setString(2, plate_no);
+            insertVehicleOrder.setTimestamp(3, start_time);
+            insertVehicleOrder.setTimestamp(4, end_time);
+            if (insertVehicleOrder.executeUpdate() < 1) {
+                this.conn.rollback();
+                return false;
+            }
+
+            // modify add_ons
+            while (items.size() > 0) {
+                String item = items.get(0);
+                int number = 0;
+                for (int i = 1; i < items.size(); i++) {
+                    if (items.get(i).equals(item)) {
+                        number++;
+                        i--;
+                        items.remove(i);
+                    }
+                }
+                insertAddOns.setInt(1, order_id);
+                insertAddOns.setString(2, item);
+                insertAddOns.setInt(3, number);
+                if (insertAddOns.executeUpdate() < 1) {
+                    this.conn.rollback();
+                    return false;
+                }
+            }
+            this.conn.commit();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    //-----------------------------------------------------------------------------------
+    /**
+     * List all insurance plans and their price
+     * @return ArrayList of String list containning all info
+     */
+    ArrayList<ArrayList<String>> selectAllInsurance() {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
+        try {
+            ResultSet rs = selectAllInsurance.executeQuery();
+            while (rs.next()) {
+                ArrayList<String> row = new ArrayList<String>();
+                row.add(rs.getString("insurance_type"));
+                row.add(rs.getString("price_per_hour"));
+                row.add(rs.getString("price_per_day"));
+                row.add(rs.getString("price_per_week"));
+                res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    //-----------------------------------------------------------------------------------
+    /**
+     * List all itmes
+     * @return
+     */
+    ArrayList<ArrayList<String>> selectAllItems() {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
+        try {
+            ResultSet rs = selectAllItems.executeQuery();
+            while (rs.next()) {
+                ArrayList<String> row = new ArrayList<String>();
+                row.add(rs.getString("item"));
+                row.add(rs.getString("price"));
+                res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    //-----------------------------------------------------------------------------------
+    /**
+     * List all rent centers
+     * @return center_name and loc
+     */
+    ArrayList<ArrayList<String>> selectAllRentCenters() {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
+        try {
+            ResultSet rs = selectAllRentCenters.executeQuery();
+            while (rs.next()) {
+                ArrayList<String> row = new ArrayList<String>();
+                row.add(rs.getString("center_name"));
+                row.add(rs.getString("loc"));
+                res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    //-----------------------------------------------------------------------------------
+    /**
+     * List all vehicles
+     * @return plate_no, make, model, type, odometer
+     */
+    ArrayList<ArrayList<String>> selectAllVehicles() {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
+        try {
+            ResultSet rs = selectAllVehicles.executeQuery();
+            while (rs.next()) {
+                ArrayList<String> row = new ArrayList<String>();
+                row.add(rs.getString("plate_no"));
+                row.add(rs.getString("make"));
+                row.add(rs.getString("model"));
+                row.add(rs.getString("type"));
+                row.add(rs.getString("odometer"));
+                res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
+     * List all avaliable vehicles at a specific rent center
+     * @param start_time The time the rent period starts
+     * @param end_time The time the rent period ends
+     * @param center_name The rent center from where user wants to rent the vehicle
+     * @return ArrayList of String list containning the vehicle info
+     */
+    ArrayList<ArrayList<String>> selectAllAvailableVehicles(Timestamp start_time, Timestamp end_time, String center_name) {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
+        try {
+            selectAllAvaliableVehicles.setTimestamp(1, start_time);
+            selectAllAvaliableVehicles.setTimestamp(2, start_time);
+            selectAllAvaliableVehicles.setTimestamp(3, start_time);
+            selectAllAvaliableVehicles.setTimestamp(4, end_time);
+            selectAllAvaliableVehicles.setString(5, center_name);
+            ResultSet rs = selectAllAvaliableVehicles.executeQuery();
+            while (rs.next()) {
+                ArrayList<String> row = new ArrayList<String>();
+                row.add(rs.getString("plate_no"));
+                row.add(rs.getString("make"));
+                row.add(rs.getString("model"));
+                row.add(rs.getString("type"));
+                row.add(rs.getString("odometer"));
+                res.add(row);
             }
         } catch (SQLException e) {
             e.printStackTrace();
