@@ -111,7 +111,7 @@ public class user {
                 // manage orders
                 boolean goBack = false;
                 while (!goBack) {
-                    actions = "123q?";
+                    actions = "1234q?";
                     System.out.print("[" + actions + "] :> ");
                     action = s.nextLine();
                     if (action.equals("1")) {
@@ -322,12 +322,45 @@ public class user {
                                     System.out.println("Cannot create order, internal failure");
                                 } else {
                                     System.out.println("Successfully created, order id: " + order_id);
+
+                                    double price = estimatePrice(db, start_time, end_time, discount_code, addOns, plate_no, insurance_type);
+
+                                    System.out.println("Estimated price: " + price);
+
                                 }
                             } else {
                                 System.out.println("Canceled");
                             }
                         }
-
+                    } else if (action.equals("4")) {
+                        // estimate price
+                        System.out.print("Please enter an order_id: ");
+                        String target_order = s.nextLine();
+                        ArrayList<ArrayList<String>> all_user_orders = db.selectUserOrders(customer_id);
+                        ArrayList<String> all_user_order_id = new ArrayList<String>();
+                        for (ArrayList<String> rd:all_user_orders) {
+                            all_user_order_id.add(rd.get(0));
+                        }
+                        if (all_user_order_id.contains(target_order)) {
+                            // valid input order_id
+                            int order_id = Integer.parseInt(target_order);
+                            ArrayList<String> order_info = db.selectOneOrder(order_id);
+                            ArrayList<Timestamp> order_time = db.selectOneOrderTime(order_id);
+                            ArrayList<String> addOns = new ArrayList<String>();
+                            ArrayList<ArrayList<String>> addOnsDb = db.selectAddOns(order_id);
+                            for (ArrayList<String> rd:addOnsDb) {
+                                String item = rd.get(0);
+                                int number = Integer.parseInt(rd.get(1));
+                                for (int i = 0; i < number; i++) {
+                                    addOns.add(item);
+                                }
+                            }
+                            // print out estimated price
+                            Double price = estimatePrice(db, order_time.get(0), order_time.get(1), order_info.get(2), addOns, order_info.get(4), order_info.get(3));
+                            System.out.println("Estimated price: " + price);
+                        } else {
+                            System.out.println("Order '" + target_order + "' does not exist, please enter a valid order id");
+                        }
                     } else if (action.equals("q")) {
                         // go back to main menu
                         goBack = true;
@@ -395,6 +428,7 @@ public class user {
         System.out.println("    [1] View Your Orders");
         System.out.println("    [2] View add on items of an order");
         System.out.println("    [3] Create a new order");
+        System.out.println("    [4] Check rental of an order");
         System.out.println("    [q] Go back to main menu");
         System.out.println("    [?] Show this menu");
     }
@@ -411,5 +445,43 @@ public class user {
             System.out.println("Example: 2019-09-10 14:00:00");
             return null;
         }
+    }
+
+    static double estimatePrice(Database db, Timestamp start_time, Timestamp end_time, String discount_code, ArrayList<String> addOns, String plate_no, String insurance_type) {
+        // estimate price
+        long rent_length = end_time.getTime() - start_time.getTime();
+        // System.out.println("(" + length_of_rent + ") - " + (end_time.getTime() - start_time.getTime()));
+        double discount_rate = Double.parseDouble(db.selectOneGroup(discount_code).get(2));
+        double items_price = 0;
+        for (String addOn:addOns) {
+            items_price += Double.parseDouble(db.selectAnItem(addOn).get(1));
+        }
+        double insurance_price = 0;
+        double vehicle_rental = 0;
+        String vehicle_type = db.selectAVehicle(plate_no).get(3);
+        if (rent_length < 86400000) {
+            // charge by hours
+            int hours = (int)(rent_length / 3600000);
+            if (rent_length % 3600000 != 0)
+                hours++;
+            insurance_price = Double.parseDouble(db.selectAnInsurance(insurance_type).get(1)) * hours;
+            vehicle_rental = Double.parseDouble(db.selectVehicleRental(vehicle_type).get(1)) * hours;
+        } else if (rent_length < 604800000) {
+            // charge by days
+            int days = (int)(rent_length / 86400000);
+            if (rent_length % 86400000 != 0)
+                days++;
+            insurance_price = Double.parseDouble(db.selectAnInsurance(insurance_type).get(2)) * days;
+            vehicle_rental = Double.parseDouble(db.selectVehicleRental(vehicle_type).get(2)) * days;
+        } else {
+            // charge by weeks
+            long weeks = rent_length / 604800000;
+            if (rent_length % 604800000 != 0)
+                weeks++;
+            insurance_price = Double.parseDouble(db.selectAnInsurance(insurance_type).get(3)) * weeks;
+            vehicle_rental = Double.parseDouble(db.selectVehicleRental(vehicle_type).get(3)) * weeks;
+        }
+
+        return discount_rate * (items_price + insurance_price + vehicle_rental);
     }
 }

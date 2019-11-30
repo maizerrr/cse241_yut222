@@ -93,9 +93,19 @@ public class Database {
     PreparedStatement selectAllInsurance;
 
     /**
+     * Select an insurance plan based on insurance_type
+     */
+    PreparedStatement selectAnInsurance;
+
+    /**
      * List all add-on items
      */
     PreparedStatement selectAllItems;
+
+    /**
+     * Select an item based on item name
+     */
+    PreparedStatement selectAnItem;
 
     /**
      * List all add-ons of a specific order
@@ -123,6 +133,11 @@ public class Database {
     PreparedStatement selectAllAvaliableVehicles;
 
     /**
+     * Select a vehicle based on plate_no
+     */
+    PreparedStatement selectAVehicle;
+
+    /**
      * List order records of all vehicles
      */
     PreparedStatement selectAllVehicleOrder;
@@ -131,6 +146,11 @@ public class Database {
      * Insert a record, for creating new order
      */
     PreparedStatement insertVehicleOrder;
+
+    /**
+     * List vehicle rental based on type
+     */
+    PreparedStatement selectVehicleRental;
 
     private Database() {
 
@@ -172,12 +192,14 @@ public class Database {
             db.selectAMembership = db.conn.prepareStatement("SELECT * FROM members WHERE customer_id = ? AND discount_code = ?");
             
             db.selectAllOrders = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order");
-            db.selectOneOrder = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order WHERE order_id = ?");
+            db.selectOneOrder = db.conn.prepareStatement("SELECT order_id, customer_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order WHERE order_id = ?");
             db.insertOneOrder = db.conn.prepareStatement("INSERT INTO orders VALUES (default, ?, ?, ?, ?, ?, ?)", new String[]{"order_id"});
 
             db.selectAllInsurance = db.conn.prepareStatement("SELECT * FROM insurance");
+            db.selectAnInsurance = db.conn.prepareStatement("SELECT * FROM insurance WHERE insurance_type = ?");
 
             db.selectAllItems = db.conn.prepareStatement("SELECT * FROM items");
+            db.selectAnItem = db.conn.prepareStatement("SELECT * FROM items WHERE item =?");
 
             db.selectAddOns = db.conn.prepareStatement("SELECT * FROM add_ons WHERE order_id = ?");
             db.insertAddOns = db.conn.prepareStatement("INSERT INTO add_ons VALUES (?, ?, ?)");
@@ -186,9 +208,12 @@ public class Database {
 
             db.selectAllVehicles = db.conn.prepareStatement("SELECT * FROM vehicle");
             db.selectAllAvaliableVehicles = db.conn.prepareStatement("SELECT * FROM vehicle WHERE plate_no NOT IN (SELECT plate_no FROM vehicle_order WHERE (start_time <= ? AND end_time > ?) OR (start_time > ? AND start_time < ?)) AND rent_center = ?");
+            db.selectAVehicle = db.conn.prepareStatement("SELECT * FROM vehicle WHERE plate_no = ?");
 
             db.selectAllVehicleOrder = db.conn.prepareStatement("SELECT * FROM vehicle_order");
             db.insertVehicleOrder = db.conn.prepareStatement("INSERT INTO vehicle_order VALUES (?, ?, ?, ?)");
+
+            db.selectVehicleRental = db.conn.prepareStatement("SELECT * FROM rental WHERE type = ?");
         } catch (Exception e) {
             e.printStackTrace();
             db.disconnect();
@@ -438,6 +463,7 @@ public class Database {
             if (rs.next()) {
                 res.add(rs.getString("discount_code"));
                 res.add(rs.getString("group_name"));
+                res.add(rs.getString("discount_rate"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -530,14 +556,30 @@ public class Database {
             selectOneOrder.setInt(1, order_id);
             ResultSet rs = selectOneOrder.executeQuery();
             if (rs.next()) {
-                res.add("" + rs.getInt("order_id"));
+                res.add(rs.getString("order_id"));
                 res.add(rs.getString("customer_id"));
                 res.add(rs.getString("discount_code"));
                 res.add(rs.getString("insurance_type"));
-                res.add("" + rs.getInt("included_miles"));
-                res.add("" + rs.getInt("tot_miles"));
-                res.add("" + rs.getInt("tank"));
+                res.add(rs.getString("plate_no"));
+                res.add(rs.getString("included_miles"));
+                res.add(rs.getString("tot_miles"));
+                res.add(rs.getString("tank"));
                 res.add(rs.getString("dropoff_loc"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    ArrayList<Timestamp> selectOneOrderTime(int order_id) {
+        ArrayList<Timestamp> res = new ArrayList<Timestamp>();
+        try {
+            selectOneOrder.setInt(1, order_id);
+            ResultSet rs = selectOneOrder.executeQuery();
+            if (rs.next()) {
+                res.add(rs.getTimestamp("start_time"));
+                res.add(rs.getTimestamp("end_time"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -679,6 +721,28 @@ public class Database {
         return res;
     }
 
+    /**
+     * Select an insurance plan based on insurance_type
+     * @param insurance_type
+     * @return
+     */
+    ArrayList<String> selectAnInsurance(String insurance_type) {
+        ArrayList<String> res = new ArrayList<String>();
+        try {
+            selectAnInsurance.setString(1, insurance_type);
+            ResultSet rs = selectAnInsurance.executeQuery();
+            if (rs.next()) {
+                res.add(rs.getString("insurance_type"));
+                res.add(rs.getString("price_per_hour"));
+                res.add(rs.getString("price_per_day"));
+                res.add(rs.getString("price_per_week"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
     //-----------------------------------------------------------------------------------
     /**
      * List all itmes
@@ -693,6 +757,26 @@ public class Database {
                 row.add(rs.getString("item"));
                 row.add(rs.getString("price"));
                 res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
+     * Select an item based on item name
+     * @param item
+     * @return
+     */
+    ArrayList<String> selectAnItem(String item) {
+        ArrayList<String> res = new ArrayList<String>();
+        try {
+            selectAnItem.setString(1, item);
+            ResultSet rs = selectAnItem.executeQuery();
+            if (rs.next()) {
+                res.add(rs.getString("item"));
+                res.add(rs.getString("price"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -792,6 +876,52 @@ public class Database {
                 row.add(rs.getString("type"));
                 row.add(rs.getString("odometer"));
                 res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
+     * Select a vehicle based on given plate_no
+     * @param plate_no
+     * @return
+     */
+    ArrayList<String> selectAVehicle(String plate_no) {
+        ArrayList<String> res = new ArrayList<String>();
+        try {
+            selectAVehicle.setString(1, plate_no);
+            ResultSet rs = selectAVehicle.executeQuery();
+            if (rs.next()) {
+                res.add(rs.getString("plate_no"));
+                res.add(rs.getString("make"));
+                res.add(rs.getString("model"));
+                res.add(rs.getString("type"));
+                res.add(rs.getString("odometer"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    //-----------------------------------------------------------------------------------
+    /**
+     * Select vehicle rental based on vehicle type
+     * @param type
+     * @return
+     */
+    ArrayList<String> selectVehicleRental(String type) {
+        ArrayList<String> res = new ArrayList<String>();
+        try {
+            selectVehicleRental.setString(1, type);
+            ResultSet rs = selectVehicleRental.executeQuery();
+            if (rs.next()) {
+                res.add(rs.getString("type"));
+                res.add(rs.getString("rental_by_hours"));
+                res.add(rs.getString("rental_by_days"));
+                res.add(rs.getString("rental_by_weeks"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
