@@ -9,7 +9,6 @@ import java.util.Date;
 import java.util.ArrayList;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.text.ParseException;
 import java.sql.Timestamp;
 
 public class user {
@@ -112,7 +111,7 @@ public class user {
                 // manage orders
                 boolean goBack = false;
                 while (!goBack) {
-                    actions = "12q?";
+                    actions = "123q?";
                     System.out.print("[" + actions + "] :> ");
                     action = s.nextLine();
                     if (action.equals("1")) {
@@ -124,6 +123,30 @@ public class user {
                             System.out.printf("%-8s %-14s %-14s %-8s %-14s %-9s %-4s %-12s %-20s %s\n", rd.get(0), rd.get(1), rd.get(2), rd.get(3), rd.get(4), rd.get(5), rd.get(6), rd.get(7), rd.get(8), rd.get(9));
                         }
                     } else if (action.equals("2")) {
+                        // view add-ons of an order
+                        System.out.print("Please enter an order_id: ");
+                        String target_order = s.nextLine();
+                        ArrayList<ArrayList<String>> all_user_orders = db.selectUserOrders(customer_id);
+                        ArrayList<String> all_user_order_id = new ArrayList<String>();
+                        for (ArrayList<String> rd:all_user_orders) {
+                            all_user_order_id.add(rd.get(0));
+                        }
+                        if (all_user_order_id.contains(target_order)) {
+                            // valid input order_id
+                            ArrayList<ArrayList<String>> res = db.selectAddOns(Integer.parseInt(target_order));
+                            if (res.size() == 0) {
+                                System.out.println("Order " + target_order + " does not have any add on items");
+                            } else {
+                                System.out.printf("%-15s %s\n", "ITEM", "NUM_OF_ITEM");
+                                System.out.println("---------------------------");
+                                for (ArrayList<String> rd:res) {
+                                    System.out.printf("%-15s %s\n", rd.get(0), rd.get(1));
+                                }
+                            }
+                        } else {
+                            System.out.println("Order '" + target_order + "' does not exist, please enter a valid order id");
+                        }
+                    } else if (action.equals("3")) {
                         // create a new order
 
                         // get membership
@@ -287,6 +310,19 @@ public class user {
                             action = s.nextLine();
                             if (action.equals("y") || action.equals("yes")) {
                                 // create order
+                                int order_id = -1;
+                                // try to get order id
+                                if (addOns.size() == 0) {
+                                    order_id = db.insertOneOrder(membership, insurance_type, 1000, plate_no, start_time, end_time);
+                                } else {
+                                    order_id = db.insertOneOrder(membership, insurance_type, 1000, plate_no, start_time, end_time, addOns);
+                                }
+                                // evaluate order id
+                                if (order_id == -1) {
+                                    System.out.println("Cannot create order, internal failure");
+                                } else {
+                                    System.out.println("Successfully created, order id: " + order_id);
+                                }
                             } else {
                                 System.out.println("Canceled");
                             }
@@ -357,7 +393,8 @@ public class user {
     static void order_menu() {
         System.out.println("Manage Orders");
         System.out.println("    [1] View Your Orders");
-        System.out.println("    [2] Create a new order");
+        System.out.println("    [2] View add on items of an order");
+        System.out.println("    [3] Create a new order");
         System.out.println("    [q] Go back to main menu");
         System.out.println("    [?] Show this menu");
     }

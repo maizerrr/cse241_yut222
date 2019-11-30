@@ -98,6 +98,11 @@ public class Database {
     PreparedStatement selectAllItems;
 
     /**
+     * List all add-ons of a specific order
+     */
+    PreparedStatement selectAddOns;
+
+    /**
      * insert an add-on item to an order
      */
     PreparedStatement insertAddOns;
@@ -174,6 +179,7 @@ public class Database {
 
             db.selectAllItems = db.conn.prepareStatement("SELECT * FROM items");
 
+            db.selectAddOns = db.conn.prepareStatement("SELECT * FROM add_ons WHERE order_id = ?");
             db.insertAddOns = db.conn.prepareStatement("INSERT INTO add_ons VALUES (?, ?, ?)");
 
             db.selectAllRentCenters = db.conn.prepareStatement("SELECT * FROM rent_centers");
@@ -540,25 +546,29 @@ public class Database {
     }
 
     /**
-     * Create a new order with null fields and no add-ons
+     * Create a new order
      * @param membership
      * @param insurance_type
      * @param included_miles
-     * @return
+     * @return order id, or -1 if failed
      */
-    boolean insertOneOrder(int membership, String insurance_type, double included_miles, String plate_no, Timestamp start_time, Timestamp end_time) {
+    int insertOneOrder(int membership, String insurance_type, double included_miles, String plate_no, Timestamp start_time, Timestamp end_time) {
         try {
             // modify orders
             insertOneOrder.setInt(1, membership);
             insertOneOrder.setString(2, insurance_type);
             insertOneOrder.setDouble(3, included_miles);
-            ResultSet ors = insertOneOrder.executeQuery();
+            insertOneOrder.setNull(4, Types.NUMERIC);
+            insertOneOrder.setNull(5, Types.NUMERIC);
+            insertOneOrder.setNull(6, Types.VARCHAR);
+            insertOneOrder.executeUpdate();
+            ResultSet rs = insertOneOrder.getGeneratedKeys();
             int order_id = -1;
-            if (ors.next()) {
-                order_id = ors.getInt("order_id");
-            } else {
+            if (rs.next())
+                order_id = Integer.parseInt(rs.getString(1));
+            if (order_id == -1) {
                 this.conn.rollback();
-                return false;
+                return -1;
             }
 
             // modify vehicle_order
@@ -568,18 +578,18 @@ public class Database {
             insertVehicleOrder.setTimestamp(4, end_time);
             if (insertVehicleOrder.executeUpdate() < 1) {
                 this.conn.rollback();
-                return false;
+                return -1;
             }
             this.conn.commit();
-            return true;
+            return order_id;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false;
+        return -1;
     }
 
     /**
-     * Create a new order with null fields
+     * Create a new order with ad-ons
      * @param membership
      * @param insurance_type
      * @param included_miles
@@ -587,21 +597,25 @@ public class Database {
      * @param start_time
      * @param end_time
      * @param items
-     * @return
+     * @return order id, or -1 if failed
      */
-    boolean insertOneOrder(int membership, String insurance_type, double included_miles, String plate_no, Timestamp start_time, Timestamp end_time, ArrayList<String> items) {
+    int insertOneOrder(int membership, String insurance_type, double included_miles, String plate_no, Timestamp start_time, Timestamp end_time, ArrayList<String> items) {
         try {
             // modify orders
             insertOneOrder.setInt(1, membership);
             insertOneOrder.setString(2, insurance_type);
             insertOneOrder.setDouble(3, included_miles);
-            ResultSet ors = insertOneOrder.executeQuery();
+            insertOneOrder.setNull(4, Types.NUMERIC);
+            insertOneOrder.setNull(5, Types.NUMERIC);
+            insertOneOrder.setNull(6, Types.VARCHAR);
+            insertOneOrder.executeUpdate();
+            ResultSet rs = insertOneOrder.getGeneratedKeys();
             int order_id = -1;
-            if (ors.next()) {
-                order_id = ors.getInt("order_id");
-            } else {
+            if (rs.next())
+                order_id = Integer.parseInt(rs.getString(1));
+            if (order_id == -1) {
                 this.conn.rollback();
-                return false;
+                return -1;
             }
 
             // modify vehicle_order
@@ -611,13 +625,13 @@ public class Database {
             insertVehicleOrder.setTimestamp(4, end_time);
             if (insertVehicleOrder.executeUpdate() < 1) {
                 this.conn.rollback();
-                return false;
+                return -1;
             }
 
             // modify add_ons
             while (items.size() > 0) {
                 String item = items.get(0);
-                int number = 0;
+                int number = 1;
                 for (int i = 1; i < items.size(); i++) {
                     if (items.get(i).equals(item)) {
                         number++;
@@ -630,80 +644,16 @@ public class Database {
                 insertAddOns.setInt(3, number);
                 if (insertAddOns.executeUpdate() < 1) {
                     this.conn.rollback();
-                    return false;
+                    return -1;
                 }
+                items.remove(0);
             }
             this.conn.commit();
-            return true;
+            return order_id;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return false;
-    }
-
-    /**
-     * Create a new order
-     * @param membership
-     * @param insurance_type
-     * @param included_miles
-     * @param tot_mile
-     * @param tank
-     * @param dropoff_loc
-     * @return
-     */
-    boolean insertOneOrder(int membership, String insurance_type, double included_miles, double tot_miles, double tank, String dropoff_loc, String plate_no, Timestamp start_time, Timestamp end_time, ArrayList<String> items) {
-        try {
-            // modify orders
-            insertOneOrder.setInt(1, membership);
-            insertOneOrder.setString(2, insurance_type);
-            insertOneOrder.setDouble(3, included_miles);
-            insertOneOrder.setDouble(4, tot_miles);
-            insertOneOrder.setDouble(5, tank);
-            insertOneOrder.setString(6, dropoff_loc);
-            ResultSet ors = insertOneOrder.executeQuery();
-            int order_id = -1;
-            if (ors.next()) {
-                order_id = ors.getInt("order_id");
-            } else {
-                this.conn.rollback();
-                return false;
-            }
-
-            // modify vehicle_order
-            insertVehicleOrder.setInt(1, order_id);
-            insertVehicleOrder.setString(2, plate_no);
-            insertVehicleOrder.setTimestamp(3, start_time);
-            insertVehicleOrder.setTimestamp(4, end_time);
-            if (insertVehicleOrder.executeUpdate() < 1) {
-                this.conn.rollback();
-                return false;
-            }
-
-            // modify add_ons
-            while (items.size() > 0) {
-                String item = items.get(0);
-                int number = 0;
-                for (int i = 1; i < items.size(); i++) {
-                    if (items.get(i).equals(item)) {
-                        number++;
-                        i--;
-                        items.remove(i);
-                    }
-                }
-                insertAddOns.setInt(1, order_id);
-                insertAddOns.setString(2, item);
-                insertAddOns.setInt(3, number);
-                if (insertAddOns.executeUpdate() < 1) {
-                    this.conn.rollback();
-                    return false;
-                }
-            }
-            this.conn.commit();
-            return true;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
+        return -1;
     }
 
     //-----------------------------------------------------------------------------------
@@ -742,6 +692,29 @@ public class Database {
                 ArrayList<String> row = new ArrayList<String>();
                 row.add(rs.getString("item"));
                 row.add(rs.getString("price"));
+                res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    //-----------------------------------------------------------------------------------
+    /**
+     * List add_on items of a given order
+     * @param order_id
+     * @return
+     */
+    ArrayList<ArrayList<String>> selectAddOns(int order_id) {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
+        try {
+            selectAddOns.setInt(1, order_id);
+            ResultSet rs = selectAddOns.executeQuery();
+            while (rs.next()) {
+                ArrayList<String> row = new ArrayList<String>();
+                row.add(rs.getString("item"));
+                row.add(rs.getString("num_of_item"));
                 res.add(row);
             }
         } catch (SQLException e) {

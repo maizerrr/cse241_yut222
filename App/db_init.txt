@@ -26,12 +26,6 @@ address varchar(50) not null,
 driver_license varchar(15) not null,
 primary key (customer_id)
 );
-create sequence getCustomerID;
-create trigger nextCustomerID before insert on customers
-for each row
-begin
-select getCustomerID.nextval into :new.customer_id from dual;
-end;
 
 create table user_groups
 (
@@ -50,12 +44,6 @@ primary key (membership),
 foreign key (customer_id) references customers,
 foreign key (discount_code) references user_groups
 );
-create sequence getMembership;
-create trigger nextMembership before insert on members
-for each row
-begin
-select getMembership.nextval into :new.membership from dual;
-end;
 
 create table insurance
 (
@@ -79,12 +67,6 @@ primary key (order_id),
 foreign key (membership) references members,
 foreign key (insurance_type) references insurance
 );
-create sequence getOrderID;
-create trigger nextOrderID before insert on orders
-for each row
-begin
-select getOrderID.nextval into :new.order_id from dual;
-end;
 
 create table items
 (
@@ -98,7 +80,6 @@ create table add_ons
 order_id number(8),
 item varchar(20),
 num_of_item number(2),
-primary key (order_id, item),
 foreign key (order_id) references orders,
 foreign key (item) references items
 );
@@ -142,6 +123,31 @@ primary key (order_id),
 foreign key (order_id) references orders,
 foreign key (plate_no) references vehicle
 );
+
+
+
+
+create sequence getCustomerID;
+create or replace trigger nextCustomerID before insert on customers
+for each row
+begin
+select getCustomerID.nextval into :new.customer_id from dual;
+end;
+
+create sequence getMembership;
+create or replace trigger nextMembership before insert on members
+for each row
+begin
+select getMembership.nextval into :new.membership from dual;
+end;
+
+create sequence getOrderID;
+create or replace trigger nextOrderID before insert on orders
+for each row
+begin
+select getOrderID.nextval into :new.order_id from dual;
+end;
+
 
 
 
