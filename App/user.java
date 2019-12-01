@@ -80,20 +80,29 @@ public class user {
                         System.out.printf("%-12s %-14s %-12s %s\n", res.get(0), res.get(1), res.get(2), res.get(3));
                     } else if (action.equals("2")) {
                         // edit name
-                        System.out.print("Please enter the name you want to change to: ");
-                        String customer_name = s.nextLine();
+                        String customer_name = "";
+                        while (customer_name.length() == 0) {
+                            System.out.print("Please enter the name you want to change to: ");
+                            customer_name = s.nextLine();
+                        }
                         int count = db.updateUserName(customer_id, customer_name);
                         System.out.println(count + " row(s) updated");
                     } else if (action.equals("3")) {
                         //edit address
-                        System.out.print("Please enter the address you want to change to: ");
-                        String address = s.nextLine();
+                        String address = "";
+                        while (address.length() == 0) {
+                            System.out.print("Please enter the address you want to change to: ");
+                            address = s.nextLine();
+                        }
                         int count = db.updateUserAddress(customer_id, address);
                         System.out.println(count + " row(s) updated");
                     } else if (action.equals("4")) {
                         //edit driver license
-                        System.out.print("Please enter the driver license you want to change to: ");
-                        String driverLicense = s.nextLine();
+                        String driverLicense = "";
+                        while (driverLicense.length() == 0) {
+                            System.out.print("Please enter the driver license you want to change to: ");
+                            driverLicense = s.nextLine();
+                        }
                         int count = db.updateUserDriverLicense(customer_id, driverLicense);
                         System.out.println(count + " row(s) updated");
                     } else if (action.equals("q")) {

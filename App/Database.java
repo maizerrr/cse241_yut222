@@ -39,6 +39,11 @@ public class Database {
     PreparedStatement selectUserOrders;
 
     /**
+     * List all incomplete orders (order with null fields) create by a certain user
+     */
+    PreparedStatement selectUserIncompleteOrders;
+
+    /**
      * Update user info
      */
     PreparedStatement updateUserName;
@@ -46,6 +51,11 @@ public class Database {
     PreparedStatement updateUserAddress;
 
     PreparedStatement updateUserDriverLicense;
+
+    /**
+     * Create a new user
+     */
+    PreparedStatement insertOneUser;
 
     /**
      * List all user groups
@@ -73,6 +83,11 @@ public class Database {
     PreparedStatement selectAMembership;
 
     /**
+     * Add a user to a user group
+     */
+    PreparedStatement insertOneMembership;
+
+    /**
      * List all orders
      */
     PreparedStatement selectAllOrders;
@@ -86,6 +101,11 @@ public class Database {
      * Create a new order
      */
     PreparedStatement insertOneOrder;
+
+    /**
+     * Update an order
+     */
+    PreparedStatement updateOneOrder;
 
     /**
      * List all available insurance plans
@@ -180,9 +200,11 @@ public class Database {
             db.selectOneUser = db.conn.prepareStatement("SELECT * FROM customers WHERE customer_id = ?");
             db.selectUserGroups = db.conn.prepareStatement("SELECT discount_code, group_name FROM members NATURAL JOIN user_groups WHERE customer_id = ?");
             db.selectUserOrders = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order WHERE customer_id = ?");
+            db.selectUserIncompleteOrders = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order WHERE customer_id = ? AND order_id NOT IN (SELECT order_id FROM orders WHERE tot_miles > 0)");
             db.updateUserName = db.conn.prepareStatement("UPDATE customers SET customer_name = ? WHERE customer_id = ?");
             db.updateUserAddress = db.conn.prepareStatement("UPDATE customers SET address = ? WHERE customer_id = ?");
             db.updateUserDriverLicense = db.conn.prepareStatement("UPDATE customers SET driver_license = ? WHERE customer_id = ?");
+            db.insertOneUser = db.conn.prepareStatement("INSERT INTO customers VALUES (default, ?, ?, ?)", new String[]{"customer_id"});
 
             db.selectAllGroups = db.conn.prepareStatement("SELECT * FROM user_groups");
             db.selectOneGroup = db.conn.prepareStatement("SELECT * FROM user_groups WHERE discount_code = ?");
@@ -190,10 +212,12 @@ public class Database {
 
             db.selectAllMemberships = db.conn.prepareStatement("SELECT * FROM members");
             db.selectAMembership = db.conn.prepareStatement("SELECT * FROM members WHERE customer_id = ? AND discount_code = ?");
+            db.insertOneMembership = db.conn.prepareStatement("INSERT INTO members VALUES (default, ?, ?)");
             
             db.selectAllOrders = db.conn.prepareStatement("SELECT order_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order");
             db.selectOneOrder = db.conn.prepareStatement("SELECT order_id, customer_id, discount_code, insurance_type, plate_no, included_miles, tot_miles, tank, dropoff_loc, start_time, end_time FROM orders NATURAL JOIN members NATURAL JOIN vehicle_order WHERE order_id = ?");
             db.insertOneOrder = db.conn.prepareStatement("INSERT INTO orders VALUES (default, ?, ?, ?, ?, ?, ?)", new String[]{"order_id"});
+            db.updateOneOrder = db.conn.prepareStatement("UPDATE orders SET included_miles = ?, tot_miles = ?, tank = ?, dropoff_loc = ? WHERE order_id = ?");
 
             db.selectAllInsurance = db.conn.prepareStatement("SELECT * FROM insurance");
             db.selectAnInsurance = db.conn.prepareStatement("SELECT * FROM insurance WHERE insurance_type = ?");
@@ -372,6 +396,36 @@ public class Database {
     }
 
     /**
+     * Select orders created by a user which have null fields
+     * @param customer_id
+     * @return
+     */
+    ArrayList<ArrayList<String>> selectUserIncompleteOrders(int customer_id) {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
+        try {
+            selectUserIncompleteOrders.setInt(1, customer_id);
+            ResultSet rs = selectUserIncompleteOrders.executeQuery();
+            while (rs.next()) {
+                ArrayList<String> row = new ArrayList<String>();
+                row.add("" + rs.getInt("order_id"));
+                row.add(rs.getString("discount_code"));
+                row.add(rs.getString("insurance_type"));
+                row.add(rs.getString("plate_no"));
+                row.add("" + rs.getInt("included_miles"));
+                row.add("" + rs.getInt("tot_miles"));
+                row.add("" + rs.getInt("tank"));
+                row.add(rs.getString("dropoff_loc"));
+                row.add(rs.getString("start_time"));
+                row.add(rs.getString("end_time"));
+                res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
      * Update customer's name
      * @param customer_id the target customer
      * @param customer_name the name user wants to change to
@@ -426,6 +480,44 @@ public class Database {
             e.printStackTrace();
         }
         return count;
+    }
+
+    /**
+     * Insert a customer to customers and add that customer to default user group
+     * @param customer_name
+     * @param address
+     * @param driver_license
+     * @return customer_id
+     */
+    int insertOneUser(String customer_name, String address, String driver_license) {
+        try {
+            // insert one customer into customers
+            insertOneUser.setString(1, customer_name);
+            insertOneUser.setString(2, address);
+            insertOneUser.setString(3, driver_license);
+            insertOneUser.executeUpdate();
+            ResultSet rs = insertOneUser.getGeneratedKeys();
+            int customer_id = -1;
+            if (rs.next()) {
+                customer_id = Integer.parseInt(rs.getString(1));
+            } else {
+                this.conn.rollback();
+                return -1;
+            }
+
+            // add that customer to default user group
+            insertOneMembership.setInt(1, customer_id);
+            insertOneMembership.setString(2, "00000000");
+            if (insertOneMembership.executeUpdate() < 1) {
+                this.conn.rollback();
+                return -1;
+            }
+            this.conn.commit();
+            return customer_id;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     //-----------------------------------------------------------------------------------
@@ -517,6 +609,28 @@ public class Database {
         return res;
     }
 
+    /**
+     * Add a customer to a user grou[]
+     * @param customer_id
+     * @param discount_code
+     * @return true if successfully inserted, false otherwise
+     */
+    boolean insertOneMembership (int customer_id, String discount_code) {
+        try {
+            insertOneMembership.setInt(1, customer_id);
+            insertOneMembership.setString(2, discount_code);
+            if (insertOneMembership.executeUpdate() > 0) {
+                this.conn.commit();
+                return true;
+            } else {
+                this.conn.rollback();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     //-----------------------------------------------------------------------------------
 
     /**
@@ -565,6 +679,8 @@ public class Database {
                 res.add(rs.getString("tot_miles"));
                 res.add(rs.getString("tank"));
                 res.add(rs.getString("dropoff_loc"));
+                res.add(rs.getString("start_time"));
+                res.add(rs.getString("end_time"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -692,6 +808,37 @@ public class Database {
             }
             this.conn.commit();
             return order_id;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Update an order
+     * @param membership
+     * @param insurance_type
+     * @param included_miles
+     * @param tot_miles
+     * @param tank
+     * @param dropoff_loc
+     * @return num of rows updated, or -1 if failed to update
+     */
+    int updateOneOrder(int order_id, double included_miles, double tot_miles, double tank, String dropoff_loc) {
+        try {
+            updateOneOrder.setDouble(1, included_miles);
+            updateOneOrder.setDouble(2, tot_miles);
+            updateOneOrder.setDouble(3, tank);
+            updateOneOrder.setString(4, dropoff_loc);
+            updateOneOrder.setInt(5, order_id);
+            int res = updateOneOrder.executeUpdate();
+            if (res > 0) {
+                this.conn.commit();
+                return res;
+            } else {
+                this.conn.rollback();
+                return -1;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -898,6 +1045,7 @@ public class Database {
                 res.add(rs.getString("make"));
                 res.add(rs.getString("model"));
                 res.add(rs.getString("type"));
+                res.add(rs.getString("rent_center"));
                 res.add(rs.getString("odometer"));
             }
         } catch (SQLException e) {
