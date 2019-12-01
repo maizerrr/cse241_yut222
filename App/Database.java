@@ -68,6 +68,16 @@ public class Database {
     PreparedStatement selectOneGroup;
 
     /**
+     * Insert a new user group
+     */
+    PreparedStatement insertOneGroup;
+
+    /**
+     * Update info of a group
+     */
+    PreparedStatement updateOneGroup;
+
+    /**
      * List all members of a certain group
      */
     PreparedStatement selectGroupMembers;
@@ -218,6 +228,8 @@ public class Database {
             db.selectAllGroups = db.conn.prepareStatement("SELECT * FROM user_groups");
             db.selectOneGroup = db.conn.prepareStatement("SELECT * FROM user_groups WHERE discount_code = ?");
             db.selectGroupMembers = db.conn.prepareStatement("SELECT customer_id, customer_name FROM members NATURAL JOIN customers WHERE discount_code = ?");
+            db.insertOneGroup = db.conn.prepareStatement("INSERT INTO user_groups VALUES (?, ?, ?)");
+            db.updateOneGroup = db.conn.prepareStatement("UPDATE user_groups SET group_name = ?, discount_rate = ? WHERE discount_code = ?");
 
             db.selectAllMemberships = db.conn.prepareStatement("SELECT * FROM members");
             db.selectAMembership = db.conn.prepareStatement("SELECT * FROM members WHERE customer_id = ? AND discount_code = ?");
@@ -534,7 +546,7 @@ public class Database {
 
     /**
      * List all groups
-     * @return Arraylist of String list containning discount_code and group_name
+     * @return Arraylist of String list containning discount_code, group_name, and discount_rate
      */
     ArrayList<ArrayList<String>> selectAllGroups() {
         ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
@@ -544,6 +556,7 @@ public class Database {
                 ArrayList<String> row = new ArrayList<String>();
                 row.add(rs.getString("discount_code"));
                 row.add(rs.getString("group_name"));
+                row.add(rs.getString("discount_rate"));
                 res.add(row);
             }
         } catch (SQLException e) {
@@ -593,6 +606,66 @@ public class Database {
             e.printStackTrace();
         }
         return res;
+    }
+
+    /**
+     * Add a new group
+     * @param discount_code
+     * @param group_name
+     * @param discount_rate
+     * @return num of rows inserted, or -1 if failed
+     */
+    int insertOneGroup(String discount_code, String group_name, double discount_rate) {
+        try {
+            insertOneGroup.setString(1, discount_code);
+            insertOneGroup.setString(2, group_name);
+            insertOneGroup.setDouble(3, discount_rate);
+            int res = insertOneGroup.executeUpdate();
+            if (res > 0) {
+                this.conn.commit();
+                return res;
+            } else {
+                this.conn.rollback();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Update a group
+     * @param discount_code
+     * @param group_name
+     * @param discount_rate
+     * @return num of rows updated, or -1 if failed
+     */
+    int updateOneGroup(String discount_code, String group_name, double discount_rate) {
+        try {
+            selectOneGroup.setString(1, discount_code);
+            ResultSet rs = selectOneGroup.executeQuery();
+            if (rs.next()) {
+                String g_name = rs.getString("group_name");
+                Double d_rate = rs.getDouble("discount_rate");
+                if (group_name.length() == 0)
+                    group_name = g_name;
+                if (discount_rate == -1)
+                    discount_rate = d_rate;
+                updateOneGroup.setString(1, group_name);
+                updateOneGroup.setDouble(2, discount_rate);
+                updateOneGroup.setString(3, discount_code);
+                int res = updateOneGroup.executeUpdate();
+                if (res > 0) {
+                    this.conn.commit();
+                    return res;
+                } else {
+                    this.conn.rollback();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     //-----------------------------------------------------------------------------------
