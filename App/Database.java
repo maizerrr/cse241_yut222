@@ -157,10 +157,19 @@ public class Database {
      */
     PreparedStatement selectAVehicle;
 
+    PreparedStatement updateOneVehicle;
+
+    /**
+     * Update odometer after a vehicle is returned
+     */
+    PreparedStatement updateOdometer;
+
     /**
      * List order records of all vehicles
      */
     PreparedStatement selectAllVehicleOrder;
+
+    
 
     /**
      * Insert a record, for creating new order
@@ -233,6 +242,7 @@ public class Database {
             db.selectAllVehicles = db.conn.prepareStatement("SELECT * FROM vehicle");
             db.selectAllAvaliableVehicles = db.conn.prepareStatement("SELECT * FROM vehicle WHERE plate_no NOT IN (SELECT plate_no FROM vehicle_order WHERE (start_time <= ? AND end_time > ?) OR (start_time > ? AND start_time < ?)) AND rent_center = ?");
             db.selectAVehicle = db.conn.prepareStatement("SELECT * FROM vehicle WHERE plate_no = ?");
+            db.updateOdometer = db.conn.prepareStatement("UPDATE vehicle SET odometer = ? WHERE plate_no = ?");
 
             db.selectAllVehicleOrder = db.conn.prepareStatement("SELECT * FROM vehicle_order");
             db.insertVehicleOrder = db.conn.prepareStatement("INSERT INTO vehicle_order VALUES (?, ?, ?, ?)");
@@ -832,12 +842,17 @@ public class Database {
             updateOneOrder.setString(4, dropoff_loc);
             updateOneOrder.setInt(5, order_id);
             int res = updateOneOrder.executeUpdate();
-            if (res > 0) {
-                this.conn.commit();
-                return res;
-            } else {
-                this.conn.rollback();
-                return -1;
+            selectOneOrder.setInt(1, order_id);
+            ResultSet rs = selectOneOrder.executeQuery();
+            if (rs.next()) {
+                String plate_no = rs.getString("plate_no");
+                if (res > 0 && updateOdometer(plate_no, tot_miles) > 0) {
+                    this.conn.commit();
+                    return res;
+                } else {
+                    this.conn.rollback();
+                    return -1;
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1052,6 +1067,35 @@ public class Database {
             e.printStackTrace();
         }
         return res;
+    }
+
+    /**
+     * Update odometer
+     * @param plate_no
+     * @param tot_miles
+     * @return num of rows updated
+     */
+    int updateOdometer(String plate_no, double tot_miles) {
+        try {
+            selectAVehicle.setString(1, plate_no);
+            ResultSet rs = selectAVehicle.executeQuery();
+            if (rs.next()) {
+                double odometer = rs.getDouble("odometer");
+                odometer += tot_miles;
+                updateOdometer.setDouble(1, odometer);
+                updateOdometer.setString(2, plate_no);
+                int res = updateOdometer.executeUpdate();
+                if (res > 0) {
+                    this.conn.commit();
+                    return res;
+                } else {
+                    this.conn.rollback();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     //-----------------------------------------------------------------------------------

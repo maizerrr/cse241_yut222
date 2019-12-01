@@ -476,7 +476,7 @@ public class staff {
                                 if (action.equals("y") || action.equals("yes")) {
                                     // Calculate rental and update
                                     if (db.updateOneOrder(order_id, included_miles, tot_miles, tank, dropoff_loc) != -1) {
-                                        System.out.println("Order updated");
+                                        System.out.println("Order & odometer updated");
 
                                         // calculate estimate price
                                         Timestamp start_time = db.selectOneOrderTime(order_id).get(0);
