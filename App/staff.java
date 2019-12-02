@@ -299,7 +299,7 @@ public class staff {
                                     System.out.printf("%-8s %-8s %-8s %-8s %s\n", "PLATE_NO", "MAKE", "MODEL", "TYPE", "ODOMETER");
                                     System.out.println("--------------------------------------------");
                                     for (ArrayList<String> rd:availableVehicles) {
-                                        System.out.printf("%-8s %-8s %-8s %-8s %s\n", rd.get(0), rd.get(1), rd.get(2), rd.get(3), rd.get(4));
+                                        System.out.printf("%-8s %-8s %-8s %-8s %s\n", rd.get(0), rd.get(1), rd.get(2), rd.get(3), rd.get(5));
                                         plate_nos.add(rd.get(0));
                                     }
                                     System.out.print("enter a plate_no: ");

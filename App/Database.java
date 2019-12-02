@@ -128,6 +128,16 @@ public class Database {
     PreparedStatement selectAnInsurance;
 
     /**
+     * Insert a new insurance plan
+     */
+    PreparedStatement insertOneInsurance;
+
+    /**
+     * Update an insurance plan
+     */
+    PreparedStatement updateOneInsurance;
+
+    /**
      * List all add-on items
      */
     PreparedStatement selectAllItems;
@@ -136,6 +146,16 @@ public class Database {
      * Select an item based on item name
      */
     PreparedStatement selectAnItem;
+
+    /**
+     * Add an item
+     */
+    PreparedStatement insertOneItem;
+
+    /**
+     * Update the price of an item
+     */
+    PreparedStatement updateOneItem;
 
     /**
      * List all add-ons of a specific order
@@ -153,6 +173,21 @@ public class Database {
     PreparedStatement selectAllRentCenters;
 
     /**
+     * Select a rent center
+     */
+    PreparedStatement selectOneRentCenter;
+
+    /**
+     * Add a rent center
+     */
+    PreparedStatement insertOneRentCenter;
+
+    /**
+     * Update a rent center
+     */
+    PreparedStatement updateOneRentCenter;
+
+    /**
      * List all vehicles
      */
     PreparedStatement selectAllVehicles;
@@ -163,11 +198,19 @@ public class Database {
     PreparedStatement selectAllAvaliableVehicles;
 
     /**
+     * List all vehicles at a rent center
+     */
+    PreparedStatement selectCenterVehicles;
+
+    /**
      * Select a vehicle based on plate_no
      */
     PreparedStatement selectAVehicle;
 
-    PreparedStatement updateOneVehicle;
+    /**
+     * Insert a new vehicle
+     */
+    PreparedStatement insertOneVehicle;
 
     /**
      * Update odometer after a vehicle is returned
@@ -187,9 +230,24 @@ public class Database {
     PreparedStatement insertVehicleOrder;
 
     /**
+     * List rental for all types of vehicles
+     */
+    PreparedStatement selectAllRental;
+
+    /**
      * List vehicle rental based on type
      */
     PreparedStatement selectVehicleRental;
+
+    /**
+     * Add a new type of vehicle and define rental
+     */
+    PreparedStatement insertVehicleRental;
+
+    /**
+     * Edit rental of a type of vehicles
+     */
+    PreparedStatement updateVehicleRental;
 
     private Database() {
 
@@ -242,24 +300,36 @@ public class Database {
 
             db.selectAllInsurance = db.conn.prepareStatement("SELECT * FROM insurance");
             db.selectAnInsurance = db.conn.prepareStatement("SELECT * FROM insurance WHERE insurance_type = ?");
+            db.insertOneInsurance = db.conn.prepareStatement("INSERT INTO insurance VALUES (?, ?, ?, ?)");
+            db.updateOneInsurance = db.conn.prepareStatement("UPDATE insurance SET price_per_hour = ?, price_per_day = ?, price_per_week = ? WHERE insurance_type = ?");
 
             db.selectAllItems = db.conn.prepareStatement("SELECT * FROM items");
             db.selectAnItem = db.conn.prepareStatement("SELECT * FROM items WHERE item =?");
+            db.insertOneItem = db.conn.prepareStatement("INSERT INTO items VALUES (?, ?)");
+            db.updateOneItem = db.conn.prepareStatement("UPDATE items SET price = ? WHERE item = ?");
 
             db.selectAddOns = db.conn.prepareStatement("SELECT * FROM add_ons WHERE order_id = ?");
             db.insertAddOns = db.conn.prepareStatement("INSERT INTO add_ons VALUES (?, ?, ?)");
 
             db.selectAllRentCenters = db.conn.prepareStatement("SELECT * FROM rent_centers");
+            db.selectOneRentCenter = db.conn.prepareStatement("SELECT * FROM rent_centers WHERE center_name = ?");
+            db.insertOneRentCenter = db.conn.prepareStatement("INSERT INTO rent_centers VALUES (?, ?)");
+            db.updateOneRentCenter = db.conn.prepareStatement("UPDATE rent_centers SET loc = ? WHERE center_name = ?");
 
             db.selectAllVehicles = db.conn.prepareStatement("SELECT * FROM vehicle");
             db.selectAllAvaliableVehicles = db.conn.prepareStatement("SELECT * FROM vehicle WHERE plate_no NOT IN (SELECT plate_no FROM vehicle_order WHERE (start_time <= ? AND end_time > ?) OR (start_time > ? AND start_time < ?)) AND rent_center = ?");
+            db.selectCenterVehicles = db.conn.prepareStatement("SELECT * FROM vehicle WHERE rent_center = ?");
             db.selectAVehicle = db.conn.prepareStatement("SELECT * FROM vehicle WHERE plate_no = ?");
+            db.insertOneVehicle = db.conn.prepareStatement("INSERT INTO vehicle VALUES (?, ?, ?, ?, ?, ?)");
             db.updateOdometer = db.conn.prepareStatement("UPDATE vehicle SET odometer = ? WHERE plate_no = ?");
 
             db.selectAllVehicleOrder = db.conn.prepareStatement("SELECT * FROM vehicle_order");
             db.insertVehicleOrder = db.conn.prepareStatement("INSERT INTO vehicle_order VALUES (?, ?, ?, ?)");
 
+            db.selectAllRental = db.conn.prepareStatement("SELECT * FROM rental");
             db.selectVehicleRental = db.conn.prepareStatement("SELECT * FROM rental WHERE type = ?");
+            db.insertVehicleRental = db.conn.prepareStatement("INSERT INTO rental VALUES (?, ?, ?, ?)");
+            db.updateVehicleRental = db.conn.prepareStatement("UPDATE rental SET rental_by_hours = ?, rental_by_days = ?, rental_by_weeks = ? WHERE type = ?");
         } catch (Exception e) {
             e.printStackTrace();
             db.disconnect();
@@ -978,6 +1048,73 @@ public class Database {
         return res;
     }
 
+    /**
+     * Insert a new insurance plan
+     * @param insurance_type
+     * @param price_per_hour
+     * @param price_per_day
+     * @param price_per_week
+     * @return num of rows inserted, or -1 if failed
+     */
+    int insertOneInsurance(String insurance_type, double price_per_hour, double price_per_day, double price_per_week) {
+        try {
+            insertOneInsurance.setString(1, insurance_type);
+            insertOneInsurance.setDouble(2, price_per_hour);
+            insertOneInsurance.setDouble(3, price_per_day);
+            insertOneInsurance.setDouble(4, price_per_week);
+            int res = insertOneInsurance.executeUpdate();
+            if (res > 0) {
+                this.conn.commit();
+                return res;
+            } else {
+                this.conn.rollback();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Update an insurance
+     * @param insurance_type
+     * @param price_per_hour
+     * @param price_per_day
+     * @param price_per_week
+     * @return num of rows updated, or -1 if failed
+     */
+    int updateOneInsurance(String insurance_type, double price_per_hour, double price_per_day, double price_per_week) {
+        try {
+            selectAnInsurance.setString(1, insurance_type);
+            ResultSet rs = selectAnInsurance.executeQuery();
+            if (rs.next()) {
+                double p_hour = rs.getDouble("price_per_hour");
+                double p_day = rs.getDouble("price_per_day");
+                double p_week = rs.getDouble("price_per_week");
+                if (price_per_hour < 0)
+                    price_per_hour = p_hour;
+                if (price_per_day < 0)
+                    price_per_day = p_day;
+                if (price_per_week < 0)
+                    price_per_week = p_week;
+                updateOneInsurance.setDouble(1, price_per_hour);
+                updateOneInsurance.setDouble(2, price_per_day);
+                updateOneInsurance.setDouble(3, price_per_week);
+                updateOneInsurance.setString(4, insurance_type);
+                int res = updateOneInsurance.executeUpdate();
+                if (res > 0) {
+                    this.conn.commit();
+                    return res;
+                } else {
+                    this.conn.rollback();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
     //-----------------------------------------------------------------------------------
     /**
      * List all itmes
@@ -1017,6 +1154,52 @@ public class Database {
             e.printStackTrace();
         }
         return res;
+    }
+
+    /**
+     * Add a new item
+     * @param item
+     * @param price
+     * @return num of rows inserted, or -1 if failed
+     */
+    int insertOneItem(String item, double price) {
+        try {
+            insertOneItem.setString(1, item);
+            insertOneItem.setDouble(2, price);
+            int res = insertOneItem.executeUpdate();
+            if (res > 0) {
+                this.conn.commit();
+                return res;
+            } else {
+                this.conn.rollback();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Update the price of an item
+     * @param item
+     * @param price
+     * @return num of rows updated, or -1 if failed
+     */
+    int updateOneItem(String item, double price) {
+        try {
+            updateOneItem.setDouble(1, price);
+            updateOneItem.setString(2, item);
+            int res = updateOneItem.executeUpdate();
+            if (res > 0) {
+                this.conn.commit();
+                return res;
+            } else {
+                this.conn.rollback();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     //-----------------------------------------------------------------------------------
@@ -1063,6 +1246,72 @@ public class Database {
         return res;
     }
 
+    /**
+     * Select one rent center
+     * @param center_name
+     * @return
+     */
+    ArrayList<String> selectOneRentCenter(String center_name) {
+        ArrayList<String> res = new ArrayList<String>();
+        try {
+            selectOneRentCenter.setString(1, center_name);
+            ResultSet rs = selectOneRentCenter.executeQuery();
+            if (rs.next()) {
+                res.add(rs.getString("center_name"));
+                res.add(rs.getString("loc"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
+     * Insert one rent center
+     * @param center_name
+     * @param loc
+     * @return num of rows inserted, or -1 if failed
+     */
+    int insertOneRentCenter(String center_name, String loc) {
+        try {
+            insertOneRentCenter.setString(1, center_name);
+            insertOneRentCenter.setString(2, loc);
+            int res = insertOneRentCenter.executeUpdate();
+            if (res > 0) {
+                this.conn.commit();
+                return res;
+            } else {
+                this.conn.rollback();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Update the location of a rent center
+     * @param center_name
+     * @param loc
+     * @return num of rows updated, or -1 if failed
+     */
+    int updateOneRentCenter(String center_name, String loc) {
+        try {
+            updateOneRentCenter.setString(1, loc);
+            updateOneRentCenter.setString(2, center_name);
+            int res = updateOneRentCenter.executeUpdate();
+            if (res > 0) {
+                this.conn.commit();
+                return res;
+            } else {
+                this.conn.rollback();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
     //-----------------------------------------------------------------------------------
     /**
      * List all vehicles
@@ -1078,6 +1327,7 @@ public class Database {
                 row.add(rs.getString("make"));
                 row.add(rs.getString("model"));
                 row.add(rs.getString("type"));
+                row.add(rs.getString("rent_center"));
                 row.add(rs.getString("odometer"));
                 res.add(row);
             }
@@ -1109,6 +1359,33 @@ public class Database {
                 row.add(rs.getString("make"));
                 row.add(rs.getString("model"));
                 row.add(rs.getString("type"));
+                row.add(rs.getString("rent_center"));
+                row.add(rs.getString("odometer"));
+                res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+
+    /**
+     * List all vehicles at a rent center
+     * @param rent_center
+     * @return
+     */
+    ArrayList<ArrayList<String>> selectCenterVehicles(String rent_center) {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
+        try {
+            selectCenterVehicles.setString(1, rent_center);
+            ResultSet rs = selectCenterVehicles.executeQuery();
+            while (rs.next()) {
+                ArrayList<String> row = new ArrayList<String>();
+                row.add(rs.getString("plate_no"));
+                row.add(rs.getString("make"));
+                row.add(rs.getString("model"));
+                row.add(rs.getString("type"));
+                row.add(rs.getString("rent_center"));
                 row.add(rs.getString("odometer"));
                 res.add(row);
             }
@@ -1143,6 +1420,37 @@ public class Database {
     }
 
     /**
+     * Insert a new vehicle
+     * @param plate_no
+     * @param make
+     * @param model
+     * @param type
+     * @param rent_center
+     * @param odometer
+     * @return num of rows inserted, or -1 if failed
+     */
+    int insertOneVehicle(String plate_no, String make, String model, String type, String rent_center, double odometer) {
+        try {
+            insertOneVehicle.setString(1, plate_no);
+            insertOneVehicle.setString(2, make);
+            insertOneVehicle.setString(3, model);
+            insertOneVehicle.setString(4, type);
+            insertOneVehicle.setString(5, rent_center);
+            insertOneVehicle.setDouble(6, odometer);
+            int res = insertOneVehicle.executeUpdate();
+            if (res > 0) {
+                this.conn.commit();
+                return res;
+            } else {
+                this.conn.rollback();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
      * Update odometer
      * @param plate_no
      * @param tot_miles
@@ -1173,6 +1481,28 @@ public class Database {
 
     //-----------------------------------------------------------------------------------
     /**
+     * Select all rental
+     * @return
+     */
+    ArrayList<ArrayList<String>> selectAllRental() {
+        ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>();
+        try {
+            ResultSet rs = selectAllRental.executeQuery();
+            while (rs.next()) {
+                ArrayList<String> row = new ArrayList<String>();
+                row.add(rs.getString("type"));
+                row.add(rs.getString("rental_by_hours"));
+                row.add(rs.getString("rental_by_days"));
+                row.add(rs.getString("rental_by_weeks"));
+                res.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return res;
+    }
+    
+    /**
      * Select vehicle rental based on vehicle type
      * @param type
      * @return
@@ -1192,5 +1522,72 @@ public class Database {
             e.printStackTrace();
         }
         return res;
+    }
+
+    /**
+     * Insert a vehicle rental
+     * @param type
+     * @param rental_by_hours
+     * @param rental_by_days
+     * @param rental_by_weeks
+     * @return num of rows inserted, or -1 if failed
+     */
+    int insertVehicleRental(String type, double rental_by_hours, double rental_by_days, double rental_by_weeks) {
+        try {
+            insertVehicleRental.setString(1, type);
+            insertVehicleRental.setDouble(2, rental_by_hours);
+            insertVehicleRental.setDouble(3, rental_by_days);
+            insertVehicleRental.setDouble(4, rental_by_weeks);
+            int res = insertVehicleRental.executeUpdate();
+            if (res > 0) {
+                this.conn.commit();
+                return res;
+            } else {
+                this.conn.rollback();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
+    /**
+     * Update a rental
+     * @param type
+     * @param rental_by_hours
+     * @param rental_by_days
+     * @param rental_by_weeks
+     * @return num of rows updated or -1 if failed
+     */
+    int updateVehicleRental(String type, double rental_by_hours, double rental_by_days, double rental_by_weeks) {
+        try {
+            selectVehicleRental.setString(1, type);
+            ResultSet rs = selectVehicleRental.executeQuery();
+            if (rs.next()) {
+                double r_hours = rs.getDouble("rental_by_hours");
+                double r_days = rs.getDouble("rental_by_days");
+                double r_weeks = rs.getDouble("rental_by_weeks");
+                if (rental_by_hours < 0)
+                    rental_by_hours = r_hours;
+                if (rental_by_days < 0)
+                    rental_by_days = r_days;
+                if (rental_by_weeks < 0)
+                    rental_by_weeks = r_weeks;
+                updateVehicleRental.setDouble(1, rental_by_hours);
+                updateVehicleRental.setDouble(2, rental_by_days);
+                updateVehicleRental.setDouble(3, rental_by_weeks);
+                updateVehicleRental.setString(4, type);
+                int res = updateVehicleRental.executeUpdate();
+                if (res > 0) {
+                    this.conn.commit();
+                    return res;
+                } else {
+                    this.conn.rollback();
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 }
