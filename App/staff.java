@@ -200,7 +200,7 @@ public class staff {
                             System.out.print("Please enter the customer_id of the account you want to edit: ");
                             try {
                                 customer_id = Integer.parseInt(s.nextLine());
-                            } catch (NegativeArraySizeException e) {
+                            } catch (NumberFormatException e) {
                                 System.out.println("Cannot parse input");
                             }
                         }
