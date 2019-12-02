@@ -583,6 +583,15 @@ public class Database {
      */
     int insertOneUser(String customer_name, String address, String driver_license) {
         try {
+            // try to create default user group
+            if (selectOneGroup("00000000").size() == 0) {
+                if (insertOneGroup("00000000", "default", 1) > 0) {
+                    System.out.println("Successfully init default user group");
+                } else {
+                    return -1;
+                }
+            }
+
             // insert one customer into customers
             insertOneUser.setString(1, customer_name);
             insertOneUser.setString(2, address);

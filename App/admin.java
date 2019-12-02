@@ -4,11 +4,7 @@
  */
 
 import java.util.Scanner;
-import java.util.Date;
 import java.util.ArrayList;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.sql.Timestamp;
 
 public class admin {
     public static void main(String argsp[]) {
@@ -46,17 +42,12 @@ public class admin {
                         String discount_code = "";
                         String group_name = "";
                         double discount_rate = -1;
-                        ArrayList<ArrayList<String>> allGroups = db.selectAllGroups();
-                        ArrayList<String> existedCode = new ArrayList<String>();
-                        for (ArrayList<String> rd:allGroups) {
-                            existedCode.add(rd.get(1));
-                        }
                         while (discount_code.length() != 8) {
                             System.out.print("Please enter a unique discount code (8 char) for the new group: ");
                             String d_code = s.nextLine();
                             if (d_code.length() != 8) {
                                 System.out.println("Please enter a 8-char code");
-                            } else if (existedCode.contains(d_code)) {
+                            } else if (db.selectOneGroup(d_code).size() != 0) {
                                 System.out.println("Discount code '" + d_code + "' already exists, please re-enter");
                             } else {
                                 discount_code = d_code;
@@ -95,17 +86,15 @@ public class admin {
                         String discount_code = "";
                         while (discount_code.length() == 0) {
                             ArrayList<ArrayList<String>> allGroups = db.selectAllGroups();
-                            ArrayList<String> validCode = new ArrayList<String>();
                             System.out.println("Select a group to edit:");
                             System.out.printf("%-14s %-15s %s\n", "DISCOUNT_CODE", "GROUP_NAME", "DISCOUNT_RATE");
                             System.out.println("--------------------------------------------");
                             for (ArrayList<String> rd:allGroups) {
                                 System.out.printf("%-14s %-15s %s\n", rd.get(0), rd.get(1), rd.get(2));
-                                validCode.add(rd.get(0));
                             }
                             System.out.print("Please enter a valid discount code: ");
                             discount_code = s.nextLine();
-                            if (!validCode.contains(discount_code)) {
+                            if (db.selectOneGroup(discount_code).size() == 0) {
                                 System.out.println("Invalid discount code '" + discount_code + "', please re-enter");
                                 discount_code = "";
                             }
@@ -173,15 +162,10 @@ public class admin {
                         double price_per_hour = -1;
                         double price_per_day = -1;
                         double price_per_week = -1;
-                        ArrayList<ArrayList<String>> allInsurance = db.selectAllInsurance();
-                        ArrayList<String> existsType = new ArrayList<String>();
-                        for (ArrayList<String> rd:allInsurance) {
-                            existsType.add(rd.get(0));
-                        }
                         while (insurance_type.length() == 0) {
                             System.out.print("Please enter a unique name for the new insurance plan: ");
                             insurance_type = s.nextLine();
-                            if (existsType.contains(insurance_type)) {
+                            if (db.selectAnInsurance(insurance_type).size() != 0) {
                                 System.out.println("Insurance plan '" + insurance_type + "' already exists, please enter another name");
                                 insurance_type = "";
                             }
@@ -234,14 +218,12 @@ public class admin {
                             System.out.printf("%-20s %-14s %-14s %-14s\n", "INSURANCE_TYPE", "PRICE_PER_HOUR", "PRICE_PER_DAY", "PRICE_PER_WEEK");
                             System.out.println("-----------------------------------------------------------------");
                             ArrayList<ArrayList<String>> allInsurance = db.selectAllInsurance();
-                            ArrayList<String> validType = new ArrayList<String>();
                             for (ArrayList<String> rd:allInsurance) {
                                 System.out.printf("%-20s %-14s %-14s %-14s\n", rd.get(0), rd.get(1), rd.get(2), rd.get(3));
-                                validType.add(rd.get(0));
                             }
                             System.out.print("Please enter the insurance type you want to edit: ");
                             insurance_type = s.nextLine();
-                            if (!validType.contains(insurance_type)) {
+                            if (db.selectAnInsurance(insurance_type).size() == 0) {
                                 System.out.println("Invalid insurance type '" + insurance_type + "'");
                                 insurance_type = "";
                             }
@@ -333,15 +315,10 @@ public class admin {
                         // add a new item
                         String item = "";
                         double price = -1;
-                        ArrayList<ArrayList<String>> allItems = db.selectAllItems();
-                        ArrayList<String> existsItems = new ArrayList<String>();
-                        for (ArrayList<String> rd:allItems) {
-                            existsItems.add(rd.get(0));
-                        }
                         while (item.length() == 0) {
                             System.out.print("Please enter the name of the item you want to add: ");
                             item = s.nextLine();
-                            if (existsItems.contains(item)) {
+                            if (db.selectAnItem(item).size() != 0) {
                                 System.out.println("An item called '" + item + "' already exists, maybe you want to edit it");
                                 item = "";
                             }
@@ -376,18 +353,16 @@ public class admin {
                         // edit an item
                         String item = "";
                         ArrayList<ArrayList<String>> allItems = db.selectAllItems();
-                        ArrayList<String> validItems = new ArrayList<String>();
                         System.out.println("Please choose an item you want to edit:");
                         System.out.printf("%-15s %s\n", "ITEM", "PRICE");
                         System.out.println("---------------------");
                         for (ArrayList<String> rd:allItems) {
                             System.out.printf("%-15s %s\n", rd.get(0), rd.get(1));
-                            validItems.add(rd.get(0));
                         }
                         while (item.length() == 0) {
                             System.out.print("enter an item: ");
                             item = s.nextLine();
-                            if (!validItems.contains(item)) {
+                            if (db.selectAnItem(item).size() == 0) {
                                 System.out.println("Item '" + item + "' does not exist");
                                 item = "";
                             }
@@ -428,18 +403,11 @@ public class admin {
                     action = s.nextLine();
                     if (action.equals("1")) {
                         // add a new vehicle
-                        ArrayList<ArrayList<String>> allVehicles = db.selectAllVehicles();
-                        ArrayList<String> existsPlate = new ArrayList<String>();
-                        ArrayList<String> existsType = new ArrayList<String>();
-                        for (ArrayList<String> rd:allVehicles) {
-                            existsPlate.add(rd.get(0));
-                            existsType.add(rd.get(3));
-                        }
                         String plate_no = "";
                         while (plate_no.length() == 0) {
                             System.out.print("Please enter the plate no. of the new vehicle: ");
                             plate_no = s.nextLine();
-                            if (existsPlate.contains(plate_no)) {
+                            if (db.selectAVehicle(plate_no).size() != 0) {
                                 System.out.println("Vehicle '" + plate_no + "' already exists, please re-enter");
                                 plate_no = "";
                             }
@@ -458,7 +426,7 @@ public class admin {
                         while (type.length() == 0) {
                             System.out.print("Type (sedan, SUV, minivan, etc): ");
                             type = s.nextLine();
-                            if (!existsType.contains(type)) {
+                            if (db.selectVehicleRental(type).size() == 0) {
                                 System.out.println("'" + type + "' does not match any record in vehicle rental, please add this type to rental first");
                                 type = "";
                             }
@@ -487,7 +455,7 @@ public class admin {
                         System.out.printf("\n%-8s %-8s %-8s %-12s %-12s %s\n", "PLATE_NO", "MAKE", "MODEL", "TYPE", "RENT_CENTER", "ODOMETER");
                         System.out.println("------------------------------------------------------------");
                         System.out.printf("%-8s %-8s %-8s %-12s %-12s %s\n\n", plate_no, make, model, type, rent_center, odometer);
-                        System.out.print("Is this ok? (yes/no)");
+                        System.out.print("Is this ok? (yes/no): ");
                         action = s.nextLine();
                         if (action.equals("y") || action.equals("yes")) {
                             // insert
@@ -680,7 +648,7 @@ public class admin {
                             System.out.printf("%-14s %-14s %-14s %s\n", "TYPE", "RENTAL_PER_HOUR", "RENTAL_PER_DAY", "RENTAL_PER_WEEK");
                             System.out.println("------------------------------------------------------");
                             for (ArrayList<String> rd:allRental) {
-                                System.out.printf("%-14s %-14s %-14s %s\n\n", rd.get(0), rd.get(1), rd.get(2), rd.get(3));
+                                System.out.printf("%-14s %-14s %-14s %s\n", rd.get(0), rd.get(1), rd.get(2), rd.get(3));
                             }
                             System.out.print("enter a type: ");
                             type = s.nextLine();

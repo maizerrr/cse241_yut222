@@ -61,7 +61,7 @@ public class user {
         // if not quit, keep looping
         while (!quitApp) {
             // valid actions
-            String actions = "12q?";
+            String actions = "123q?";
             System.out.print("[" + actions + "] :> ");
             String action = s.nextLine();
             if (action.equals("1")) {
@@ -85,8 +85,11 @@ public class user {
                             System.out.print("Please enter the name you want to change to: ");
                             customer_name = s.nextLine();
                         }
-                        int count = db.updateUserName(customer_id, customer_name);
-                        System.out.println(count + " row(s) updated");
+                        if (db.updateUserName(customer_id, customer_name) > 0) {
+                            System.out.println("Successfully updated customer's name");
+                        } else {
+                            System.out.println("Cannot update name, internal failure");
+                        }
                     } else if (action.equals("3")) {
                         //edit address
                         String address = "";
@@ -94,8 +97,11 @@ public class user {
                             System.out.print("Please enter the address you want to change to: ");
                             address = s.nextLine();
                         }
-                        int count = db.updateUserAddress(customer_id, address);
-                        System.out.println(count + " row(s) updated");
+                        if (db.updateUserAddress(customer_id, address) > 0) {
+                            System.out.println("Successfully updated customer's address");
+                        } else {
+                            System.out.println("Cannot update address, internal failure");
+                        }
                     } else if (action.equals("4")) {
                         //edit driver license
                         String driverLicense = "";
@@ -103,8 +109,11 @@ public class user {
                             System.out.print("Please enter the driver license you want to change to: ");
                             driverLicense = s.nextLine();
                         }
-                        int count = db.updateUserDriverLicense(customer_id, driverLicense);
-                        System.out.println(count + " row(s) updated");
+                        if (db.updateUserDriverLicense(customer_id, driverLicense) > 0) {
+                            System.out.println("Successfully updated driver license");
+                        } else {
+                            System.out.println("Cannot update driver license, internal failure");
+                        }
                     } else if (action.equals("q")) {
                         // go back to main menu
                         goBack = true;
@@ -112,7 +121,7 @@ public class user {
                         // show menu
                         info_menu();
                     } else {
-                        System.out.println("Invalid command '" + "', enter '?' for help or 'q' to go back");
+                        System.out.println("Invalid command '" + action + "', enter '?' for help or 'q' to go back");
                     }
                 }
             } else if (action.equals("2")) {
@@ -133,18 +142,21 @@ public class user {
                         }
                     } else if (action.equals("2")) {
                         // view add-ons of an order
-                        System.out.print("Please enter an order_id: ");
-                        String target_order = s.nextLine();
-                        ArrayList<ArrayList<String>> all_user_orders = db.selectUserOrders(customer_id);
-                        ArrayList<String> all_user_order_id = new ArrayList<String>();
-                        for (ArrayList<String> rd:all_user_orders) {
-                            all_user_order_id.add(rd.get(0));
+                        int order_id = -1;
+                        while (order_id < 0) {
+                            System.out.print("Please enter an order_id: ");
+                            try {
+                                order_id = Integer.parseInt(s.nextLine());
+                            } catch (NumberFormatException e) {
+                                System.out.println("Cannot parse input");
+                                order_id = -1;
+                            }
                         }
-                        if (all_user_order_id.contains(target_order)) {
+                        if (db.selectOneOrder(order_id).size() != 0 && db.selectOneOrder(order_id).get(1).equals("" + customer_id)) {
                             // valid input order_id
-                            ArrayList<ArrayList<String>> res = db.selectAddOns(Integer.parseInt(target_order));
+                            ArrayList<ArrayList<String>> res = db.selectAddOns(order_id);
                             if (res.size() == 0) {
-                                System.out.println("Order " + target_order + " does not have any add on items");
+                                System.out.println("Order " + order_id + " does not have any add on items");
                             } else {
                                 System.out.printf("%-15s %s\n", "ITEM", "NUM_OF_ITEM");
                                 System.out.println("---------------------------");
@@ -153,7 +165,7 @@ public class user {
                                 }
                             }
                         } else {
-                            System.out.println("Order '" + target_order + "' does not exist, please enter a valid order id");
+                            System.out.println("You haven't created an order with order id '" + order_id + "', please enter '1' to see all orders created by this account");
                         }
                     } else if (action.equals("3")) {
                         // create a new order
@@ -171,7 +183,7 @@ public class user {
                             }
                             System.out.print("Please enter a valid discount code (default 00000000): ");
                             String d_code = s.nextLine();
-                            if (d_code.length() == 0 || db.selectAMembership(customer_id, "00000000").size() == 3) {
+                            if (d_code.length() == 0 && db.selectAMembership(customer_id, "00000000").size() == 3) {
                                 membership = Integer.parseInt(db.selectAMembership(customer_id, "00000000").get(0));
                             } else if (db.selectAMembership(customer_id, d_code).size() == 3) {
                                 // valid discount code
@@ -189,14 +201,12 @@ public class user {
                             System.out.printf("%-14s %-14s %-14s %s\n", "INSURANCE_TYPE", "PRICE_PER_HOUR", "PRICE_PER_DAY", "PRICE_PER_WEEK");
                             System.out.println("-----------------------------------------------------------");
                             ArrayList<ArrayList<String>> res = db.selectAllInsurance();
-                            ArrayList<String> i_types = new ArrayList<String>();
                             for (ArrayList<String> rd:res) {
                                 System.out.printf("%-14s %-14s %-14s %s\n", rd.get(0), rd.get(1), rd.get(2), rd.get(3));
-                                i_types.add(rd.get(0));
                             }
                             System.out.print("enter an insurance type: ");
                             String i_type = s.nextLine();
-                            if (i_types.contains(i_type)) {
+                            if (db.selectAnInsurance(i_type).size() != 0) {
                                 insurance_type = i_type;
                                 System.out.println("Insurance '" + insurance_type + "' selected");
                             } else {
@@ -211,16 +221,16 @@ public class user {
                             System.out.printf("%-12s %s\n", "CENTER_NAME", "LOC");
                             System.out.println("----------------");
                             ArrayList<ArrayList<String>> res = db.selectAllRentCenters();
-                            ArrayList<String> c_names = new ArrayList<String>();
                             for (ArrayList<String> rd:res) {
                                 System.out.printf("%-12s %s\n", rd.get(0), rd.get(1));
-                                c_names.add(rd.get(0));
                             }
                             System.out.print("enter a center name: ");
                             String c_name = s.nextLine();
-                            if (c_names.contains(c_name)) {
+                            if (db.selectOneRentCenter(c_name).size() != 0) {
                                 center_name = c_name;
                                 System.out.println("Rent center '" + center_name + "' selected");
+                            } else {
+                                System.out.println("Invalid rent center entered\n\n");
                             }
                         }
 
@@ -253,17 +263,15 @@ public class user {
                             // get vehicle
                             String plate_no = "";
                             while (plate_no.length() == 0) {
-                                ArrayList<String> plate_nos = new ArrayList<String>();
                                 System.out.println("Please choose a vehicle from all available ones in " + center_name + ":");
                                 System.out.printf("%-8s %-8s %-8s %-8s %s\n", "PLATE_NO", "MAKE", "MODEL", "TYPE", "ODOMETER");
                                 System.out.println("--------------------------------------------");
                                 for (ArrayList<String> rd:availableVehicles) {
                                     System.out.printf("%-8s %-8s %-8s %-8s %s\n", rd.get(0), rd.get(1), rd.get(2), rd.get(3), rd.get(5));
-                                    plate_nos.add(rd.get(0));
                                 }
                                 System.out.print("enter a plate_no: ");
                                 String p_no = s.nextLine();
-                                if (plate_nos.contains(p_no)) {
+                                if (db.selectAVehicle(p_no).size() != 0) {
                                     plate_no = p_no;
                                     System.out.println("Vehicle '" + plate_no + "' selected");
                                 } else {
@@ -283,23 +291,32 @@ public class user {
                                     System.out.printf("%-20s %s\n", "ITEM", "PRICE");
                                     System.out.println("--------------------------");
                                     ArrayList<ArrayList<String>> res = db.selectAllItems();
-                                    ArrayList<String> items = new ArrayList<String>();
                                     for (ArrayList<String> rd:res) {
-                                        System.out.printf("%-10s %s\n", rd.get(0), rd.get(1));
-                                        items.add(rd.get(0));
+                                        System.out.printf("%-20s %s\n", rd.get(0), rd.get(1));
                                     }
-                                    System.out.print("enter an item: ");
-                                    String inputItem = s.nextLine();
-                                    if (items.contains(inputItem)) {
-                                        System.out.print("How many " + inputItem + " do you need? (Integer larger than 0): ");
-                                        int inputNumber = Integer.parseInt(s.nextLine());
-                                        if (inputNumber > 0) {
-                                            for (int i = 0; i < inputNumber; i++) {
-                                                addOns.add(inputItem);
+                                    String inputItem = "";
+                                    while (inputItem.length() == 0) {
+                                        System.out.print("enter an item: ");
+                                        inputItem = s.nextLine();
+                                    }
+                                    if (db.selectAnItem(inputItem).size() != 0) {
+                                        int inputNumber = -1;
+                                        while (inputNumber < 0) {
+                                            System.out.print("How many " + inputItem + " do you need? (Integer larger than 0): ");
+                                            try {
+                                                inputNumber = Integer.parseInt(s.nextLine());
+                                                if (inputNumber > 0) {
+                                                    for (int i = 0; i < inputNumber; i++) {
+                                                        addOns.add(inputItem);
+                                                    }
+                                                    System.out.println("Itmes successfully added to list");
+                                                } else {
+                                                    System.out.println("Invalid number");
+                                                }
+                                            } catch (NumberFormatException e) {
+                                                System.out.println("Cannot parse input");
+                                                inputNumber = -1;
                                             }
-                                            System.out.println("Itmes successfully added to list");
-                                        } else {
-                                            System.out.println("Invalid number");
                                         }
                                     } else {
                                         System.out.println("Item '" + inputItem + "' does not exist, please re-enter");
@@ -332,7 +349,17 @@ public class user {
                                 } else {
                                     System.out.println("Successfully created, order id: " + order_id);
 
-                                    double price = estimatePrice(db, start_time, end_time, discount_code, addOns, plate_no, insurance_type);
+                                    // estimate price
+                                    ArrayList<String> items = new ArrayList<String>();
+                                    ArrayList<ArrayList<String>> addOnsDb = db.selectAddOns(order_id);
+                                    for (ArrayList<String> rd:addOnsDb) {
+                                        String item = rd.get(0);
+                                        int number = Integer.parseInt(rd.get(1));
+                                        for (int i = 0; i < number; i++) {
+                                            items.add(item);
+                                        }
+                                    }
+                                    double price = estimatePrice(db, start_time, end_time, discount_code, items, plate_no, insurance_type);
 
                                     System.out.println("Estimated price: " + price);
 
@@ -343,16 +370,18 @@ public class user {
                         }
                     } else if (action.equals("4")) {
                         // estimate price
-                        System.out.print("Please enter an order_id: ");
-                        String target_order = s.nextLine();
-                        ArrayList<ArrayList<String>> all_user_orders = db.selectUserOrders(customer_id);
-                        ArrayList<String> all_user_order_id = new ArrayList<String>();
-                        for (ArrayList<String> rd:all_user_orders) {
-                            all_user_order_id.add(rd.get(0));
+                        int order_id = -1;
+                        while (order_id < 0) {
+                            System.out.print("Please enter an order_id: ");
+                            try {
+                                order_id = Integer.parseInt(s.nextLine());
+                            } catch (NumberFormatException e) {
+                                System.out.println("Cannot parse input");
+                                order_id = -1;
+                            }
                         }
-                        if (all_user_order_id.contains(target_order)) {
+                        if (db.selectOneOrder(order_id).size() != 0) {
                             // valid input order_id
-                            int order_id = Integer.parseInt(target_order);
                             ArrayList<String> order_info = db.selectOneOrder(order_id);
                             ArrayList<Timestamp> order_time = db.selectOneOrderTime(order_id);
                             ArrayList<String> addOns = new ArrayList<String>();
@@ -368,7 +397,7 @@ public class user {
                             Double price = estimatePrice(db, order_time.get(0), order_time.get(1), order_info.get(2), addOns, order_info.get(4), order_info.get(3));
                             System.out.println("Estimated price: " + price);
                         } else {
-                            System.out.println("Order '" + target_order + "' does not exist, please enter a valid order id");
+                            System.out.println("Order '" + order_id + "' does not exist, please enter a valid order id");
                         }
                     } else if (action.equals("q")) {
                         // go back to main menu
@@ -394,12 +423,6 @@ public class user {
             } else if (action.equals("?")) {
                 // show menu
                 menu();
-            } else if (action.equals("T")) {
-                // for debug
-                System.out.print("Input time (yyyy-MM-dd HH:mm:ss): ");
-                String inputTime = s.nextLine();
-                Timestamp ts = toTimestamp(inputTime);
-                System.out.println(ts);
             } else {
                 System.out.println("Invalid command '" + action + "', enter '?' for help or 'q' to quit");
             }
@@ -437,7 +460,7 @@ public class user {
         System.out.println("    [1] View Your Orders");
         System.out.println("    [2] View add on items of an order");
         System.out.println("    [3] Create a new order");
-        System.out.println("    [4] Check rental of an order");
+        System.out.println("    [4] Check estimated rental of an order");
         System.out.println("    [q] Go back to main menu");
         System.out.println("    [?] Show this menu");
     }

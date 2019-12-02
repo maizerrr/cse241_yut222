@@ -1,3 +1,5 @@
+/* Drop all tables*/
+
 drop table vehicle_order;
 drop table vehicle;
 drop table rental;
@@ -11,12 +13,15 @@ drop table user_groups;
 drop table customers;
 
 
+/* Drop all sequences */
 
 drop sequence getOrderID;
 drop sequence getMembership;
 drop sequence getCustomerID;
 
 
+
+/* Create all tables */
 
 create table customers
 (
@@ -126,6 +131,7 @@ foreign key (plate_no) references vehicle
 
 
 
+/* Create sequences and triggers, please create them on by one */
 
 create sequence getCustomerID;
 create or replace trigger nextCustomerID before insert on customers
@@ -150,6 +156,7 @@ end;
 
 
 
+/* Insert tuples */
 
 insert into customers values(default, 'Alex', '5th St', '11111111');
 insert into customers values(default, 'Bob', '6th St', '22222222');
