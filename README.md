@@ -6,6 +6,7 @@ This app contains 3 interfaces:
 \tuser for customers
 \tstaff for Hurts employees
 \tadmin for Hurts managers
+These three interfaces are all seperated files and need to be run seperately.
 
 Compile with
 ```shell
